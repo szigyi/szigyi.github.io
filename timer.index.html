@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Workout Timer</title>
+    <meta name="description" content="Workout timer">
+    <meta name="author" content="Szabika">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+    	* {
+			box-sizing: border-box;
+		}
+		.col-1 {width: 8.33%;}
+		.col-2 {width: 16.66%;}
+		.col-3 {width: 25%;}
+		.col-4 {width: 33.33%;}
+		.col-5 {width: 41.66%;}
+		.col-6 {width: 50%;}
+		.col-7 {width: 58.33%;}
+		.col-8 {width: 66.66%;}
+		.col-9 {width: 75%;}
+		.col-10 {width: 83.33%;}
+		.col-11 {width: 91.66%;}
+		.col-12 {width: 100%;}
+
+		[class*="col-"] {
+		  float: left;
+		  padding: 5px;
+		}
+
+		/* Clear floats after the columns */
+		.row:after {
+		  content: "";
+		  display: table;
+		  clear: both;
+		}
+
+		input[type=number], input[type=text], select, textarea {
+		  width: 100%;
+		  padding: 12px;
+		  border: 1px solid #ccc;
+		  border-radius: 4px;
+		  box-sizing: border-box;
+		  resize: vertical;
+		}
+		/* Style the label to display next to the inputs */
+		label {
+			float: right;
+		  padding: 5px 5px 5px 0;
+		  display: inline-block;
+		}
+		input[type=submit], input[type=reset] {
+			font-size: 3vw;
+		  background-color: green;
+		  color: white;
+		  padding: 6px 10px;
+		  border: none;
+		  border-radius: 4px;
+		  cursor: pointer;
+		  float: left;
+		}
+		input[type=reset] {
+			background-color: red;
+		  float: right;
+		}
+
+		p {
+    		text-align: center;
+    		margin: 1px;
+    		word-wrap: break-word;
+		}
+		.hidden {
+			position: absolute;
+			top: -100em;
+		}
+		#timer {
+			margin-top: 5vw;
+			font-size: 8vw;
+		}
+    	#currentExercise {
+    		margin-top: 5vw;
+    		font-size: 10vw;
+    	}
+    	#nextExercise {
+    		margin-top: 2vw;
+			font-size: 3vw;
+    	}
+
+        .workoutDuration {
+        	color: green;
+        }
+        .restDuration {
+        	color: red;
+        }
+	</style>
+</head>
+
+<body>
+    <script>
+    	// disgusting hack
+    	var timeoutReference = ""
+
+    function padLeftTwoZero(numb) {
+		return ('00' + numb).slice(-2)
+	}
+
+	function countItDown(remainingSeconds, workoutDuration, restDuration, exercises) {
+		if (remainingSeconds < 0) {
+			nextExercise(exercises)
+		} else {
+			window.timeoutReference = setTimeout(function() {
+				var maxSeconds = workoutDuration + restDuration
+				var min = Math.floor(remainingSeconds / 60)
+				var sec = remainingSeconds - min * 60
+				document.getElementById("timer").innerHTML = padLeftTwoZero(min) + ":" + padLeftTwoZero(sec)
+
+				if (remainingSeconds <= restDuration) {
+					document.getElementById("timer").classList.remove("workoutDuration")
+					document.getElementById("timer").classList.add("restDuration")
+					document.getElementById("currentExercise").innerHTML = "REST"
+				} else {
+					document.body.style.backgroundColor = getColour(toPercentage(remainingSeconds - restDuration, workoutDuration))
+				}
+				
+
+				countItDown(remainingSeconds - 1, workoutDuration, restDuration, exercises)
+			}, 1000);
+		}
+	}
+
+	function startWorkout() {
+		var exercises = document.getElementById("exercises").value.split(",")
+		exercises.push("no more")
+
+		document.getElementById("nonTimer").classList.add("hidden")
+		
+		nextExercise(exercises)
+	}
+
+	function stopWorkout() {
+		document.getElementById("nonTimer").classList.remove("hidden")
+		clearTimeout(window.timeoutReference)
+	}
+
+	function nextExercise(exercises) {
+		var current = exercises[0]
+		var rest = exercises.slice(1)
+
+		document.getElementById("currentExercise").innerHTML = current.toUpperCase()
+		document.getElementById("nextExercise").innerHTML = rest[0].toLowerCase()
+
+		document.getElementById("timer").classList.remove("restDuration")
+		document.getElementById("timer").classList.add("workoutDuration")
+
+		var workoutDuration = parseInt(document.getElementById("workoutDuration").value)
+		var restDuration = parseInt(document.getElementById("restDuration").value)
+
+		var duration = workoutDuration + restDuration
+		countItDown(duration, workoutDuration, restDuration, rest)
+	}
+
+	function toPercentage(current, max) {
+		return current / max
+	}
+
+	function getColour(value) {
+		//value from 0 to 1
+		var hue = ((1 - value) * 120).toString(10);
+		return ["hsl(", hue, ",80%,50%)"].join("");
+	}
+	</script>
+
+	<div id="leftResponsiveMargin" class="col-2"></div>
+	<div id="middleResponsiveContent" class="col-8">
+		<div id=nonTimer>
+			<div class="row">
+		      <div class="col-8">
+		        <label for="exercises">List of Exercises (comma separated)</label>
+		      </div>
+		      <div class="col-4">
+		        <input type="text" id="exercises" name="exercises" placeholder="burpees, push up, plank" value="burpees, push up, plank">
+		      </div>
+		    </div>
+			<div class="row">
+		      <div class="col-8">
+		        <label for="workoutDuration">Workout duration in seconds</label>
+		      </div>
+		      <div class="col-4">
+		        <input type="number" id="workoutDuration" name="workoutDuration" placeholder="45" value="45">
+		      </div>
+		    </div>
+			<div class="row">
+		      <div class="col-8">
+		        <label for="restDuration">Rest duration in seconds</label>
+		      </div>
+		      <div class="col-4">
+		        <input type="number" id="restDuration" name="restDuration" placeholder="15" value="15">
+		      </div>
+		    </div>
+		</div>
+
+	    <div class="row">
+	      <input type="submit" onclick="startWorkout()" value="Touch me, yess!">
+	      <input type="reset" onclick="stopWorkout()" value="Don't stop me now!">
+	    </div>
+	    <p id="timer">00:00</p>
+	    <p id="currentExercise">{current exercise}</p>
+	    <p id="nextExercise">{next exercise}</p>
+	</div>
+	<div id="rightResponsiveMargin" class="col-2"></div>
+</body>
+
+</html>
