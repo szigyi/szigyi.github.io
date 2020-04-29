@@ -98,6 +98,26 @@
 
 <body>
     <script>
+   	document.addEventListener('DOMContentLoaded', function(event) {
+   		readUrlParameters()
+	})
+
+	function readUrlParameters() {
+		var queryString = window.location.search
+		var urlParams = new URLSearchParams(queryString)
+
+		var workoutDuration = parseInt(urlParams.get('workoutDuration'))
+		var restDuration = parseInt(urlParams.get('restDuration'))
+
+		document.getElementById("workoutDuration").value = workoutDuration
+		document.getElementById("restDuration").value = restDuration
+
+		if (urlParams.has('exercises')) {
+			var exercises = urlParams.get('exercises').split(",").map(str => str.trim())
+		document.getElementById("exercises").value = exercises
+		}
+	}
+
 	// disgusting hack
 	var timeoutReference;
 	var commenceRestSound = new sound("171578__leszek-szary__3-down-1.wav");
