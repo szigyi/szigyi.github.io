@@ -35,7 +35,9 @@
 		  display: table;
 		  clear: both;
 		}
-
+		textarea {
+		  height: 100px;
+		}
 		input[type=number], input[type=text], select, textarea {
 		  width: 100%;
 		  padding: 12px;
@@ -75,10 +77,12 @@
 			top: -100em;
 		}
 		#timer {
-			margin-top: 5vw;
+			line-height: 0.8;
+			margin-top: 3vw;
 			font-size: 8vw;
 		}
     	#currentExercise {
+			line-height: 0.8;
     		margin-top: 3vw;
     		font-size: 10vw;
     	}
@@ -113,8 +117,8 @@
 		document.getElementById("restDuration").value = restDuration
 
 		if (urlParams.has('exercises')) {
-			var exercises = urlParams.get('exercises').split(",").map(str => str.trim())
-		document.getElementById("exercises").value = exercises
+			var exercises = urlParams.get('exercises').replace(/,/g, ",\n")
+			document.getElementById("exercises").value = exercises
 		}
 	}
 
@@ -219,44 +223,51 @@
 	}
 	</script>
 
-	<div id="leftResponsiveMargin" class="col-2"></div>
-	<div id="middleResponsiveContent" class="col-8">
-		<div id=nonTimer>
-			<div class="row">
-		      <div class="col-8">
-		        <label for="exercises">List of Exercises (comma separated)</label>
-		      </div>
-		      <div class="col-4">
-		        <input type="text" id="exercises" name="exercises" placeholder="burpees, push up, plank, sculler sit up, superman, mountain climbers, caterpillars, squat jumps, lunges, triceps dips" value="burpees, push up, plank, sculler sit up, superman, mountain climbers, caterpillars, squat jumps, lunges, triceps dips">
-		      </div>
-		    </div>
-			<div class="row">
-		      <div class="col-8">
-		        <label for="workoutDuration">Workout duration in seconds</label>
-		      </div>
-		      <div class="col-4">
-		        <input type="number" id="workoutDuration" name="workoutDuration" placeholder="45" value="45">
-		      </div>
-		    </div>
-			<div class="row">
-		      <div class="col-8">
-		        <label for="restDuration">Rest duration in seconds</label>
-		      </div>
-		      <div class="col-4">
-		        <input type="number" id="restDuration" name="restDuration" placeholder="15" value="15">
-		      </div>
+	<div class="row">
+		<div id="leftResponsiveMargin" class="col-2"></div>
+		<div id="middleResponsiveContent" class="col-8">
+			<div id=nonTimer>
+				<div class="row">
+			      <div class="col-8">
+			        <label for="exercises">List of Exercises (comma separated)</label>
+			      </div>
+			      <div class="col-4">
+			        <textarea id="exercises" name="exercises" placeholder="burpees, push up, plank, sculler sit up, superman, mountain climbers, caterpillars, squat jumps, lunges, triceps dips" value="burpees, push up, plank, sculler sit up, superman, mountain climbers, caterpillars, squat jumps, lunges, triceps dips"></textarea>
+			      </div>
+			    </div>
+				<div class="row">
+			      <div class="col-8">
+			        <label for="workoutDuration">Workout duration in seconds</label>
+			      </div>
+			      <div class="col-4">
+			        <input type="number" id="workoutDuration" name="workoutDuration" placeholder="45" value="45">
+			      </div>
+			    </div>
+				<div class="row">
+			      <div class="col-8">
+			        <label for="restDuration">Rest duration in seconds</label>
+			      </div>
+			      <div class="col-4">
+			        <input type="number" id="restDuration" name="restDuration" placeholder="15" value="15">
+			      </div>
+			    </div>
+			</div>
+
+		    <div class="row">
+		      <input type="submit" onclick="startWorkout()" value="Touch me, yess!">
+		      <input type="reset" onclick="stopWorkout()" value="Don't stop me now!">
 		    </div>
 		</div>
-
-	    <div class="row">
-	      <input type="submit" onclick="startWorkout()" value="Touch me, yess!">
-	      <input type="reset" onclick="stopWorkout()" value="Don't stop me now!">
-	    </div>
-	    <p id="timer">00:00</p>
-	    <p id="currentExercise">{current exercise}</p>
-	    <p id="nextExercise">{next exercise}</p>
+		<div id="rightResponsiveMargin" class="col-2"></div>
 	</div>
-	<div id="rightResponsiveMargin" class="col-2"></div>
+	<div class="row">
+		<div class="col-1"></div>
+		<div id="middleResponsiveContent" class="col-10">
+		    <p id="timer">00:00</p>
+		    <p id="currentExercise">{current exercise}</p>
+		    <p id="nextExercise">{next exercise}</p>
+		</div>
+	</div>
 </body>
 
 </html>
