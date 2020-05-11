@@ -36,7 +36,7 @@
 		  clear: both;
 		}
 		textarea {
-		  height: 100px;
+		  height: 200px;
 		}
 		input[type=number], input[type=text], select, textarea {
 		  width: 100%;
@@ -52,7 +52,7 @@
 		  padding: 5px 5px 5px 0;
 		  display: inline-block;
 		}
-		input[type=submit], input[type=reset] {
+		input[type=submit], input[type=reset], input[type=button] {
 			font-size: 3vw;
 		  background-color: green;
 		  color: white;
@@ -90,11 +90,17 @@
     		margin-top: 2vw;
 			font-size: 5vw;
     	}
+    	#copyLink {
+    		font-size: 1vw;
+    		margin-top: 8px;
+    		margin-bottom: 15px;
+		  	background-color: purple;
+    	}
 
         .workoutDuration {
         	color: green;
         }
-        .restDuration {
+        .restBetweenWorkouts {
         	color: red;
         }
 	</style>
@@ -110,91 +116,30 @@
 		var queryString = window.location.search
 		var urlParams = new URLSearchParams(queryString)
 
-		var workoutDuration = parseInt(urlParams.get('workoutDuration'))
-		var restDuration = parseInt(urlParams.get('restDuration'))
-
-		document.getElementById("workoutDuration").value = workoutDuration
-		document.getElementById("restDuration").value = restDuration
+		if (urlParams.has('workoutDuration')) {
+			var workoutDuration = parseInt(urlParams.get('workoutDuration'))
+			document.getElementById("workoutDuration").value = workoutDuration
+		}
+		if (urlParams.has('restBetweenWorkouts')) {
+			var restBetweenWorkouts = parseInt(urlParams.get('restBetweenWorkouts'))
+			document.getElementById("restBetweenWorkouts").value = restBetweenWorkouts
+		}
+		if (urlParams.has('restBetweenRounds')) {
+			var restBetweenRounds = parseInt(urlParams.get('restBetweenRounds'))
+			document.getElementById("restBetweenRounds").value = restBetweenRounds
+		}
 
 		if (urlParams.has('exercises')) {
-			var exercises = urlParams.get('exercises').replace(/,/g, ",\n")
+			var exercises = decodeURIComponent(urlParams.get('exercises')).replace(/,/g, ",\n")
 			document.getElementById("exercises").value = exercises
 		}
 	}
 
-	// disgusting hack
-	var timeoutReference;
 	var commenceRestSound = new sound("171578__leszek-szary__3-down-1.wav");
 	var commenceNextExerciseSound = new sound("171580__leszek-szary__3-up-1.wav");
 
     function padLeftTwoZero(numb) {
 		return ('00' + numb).slice(-2)
-	}
-
-	function countItDown(remainingSeconds, workoutDuration, restDuration, exercises) {
-		// maybe hacK? at least does not look okey
-		if (remainingSeconds + 1 == 0) {
-			commenceNextExerciseSound.play()
-		}
-
-		if (remainingSeconds < 0) {
-			nextExercise(exercises)
-		} else {
-			timeoutReference = setTimeout(function() {
-				var maxSeconds = workoutDuration + restDuration
-				var min = Math.floor(remainingSeconds / 60)
-				var sec = remainingSeconds - min * 60
-				document.getElementById("timer").innerHTML = padLeftTwoZero(min) + ":" + padLeftTwoZero(sec)
-
-				// maybe loading and playing the sound takes time, as it seems delayed, therefore I play it 1 second before
-				if (remainingSeconds == restDuration) {
-					commenceRestSound.play()
-				}
-
-				if (remainingSeconds == restDuration) {
-					document.getElementById("timer").classList.remove("workoutDuration")
-					document.getElementById("timer").classList.add("restDuration")
-					document.getElementById("currentExercise").innerHTML = "REST"
-				}
-				if (remainingSeconds > restDuration) {
-					document.body.style.backgroundColor = getColour(toPercentage(remainingSeconds - restDuration, workoutDuration))
-				}
-				
-
-				countItDown(remainingSeconds - 1, workoutDuration, restDuration, exercises)
-			}, 1000);
-		}
-	}
-
-	function startWorkout() {
-		var exercises = document.getElementById("exercises").value.split(",")
-		exercises.push("no more")
-
-		document.getElementById("nonTimer").classList.add("hidden")
-		
-		nextExercise(exercises)
-	}
-
-	function stopWorkout() {
-		document.getElementById("nonTimer").classList.remove("hidden")
-		clearTimeout(window.timeoutReference)
-	}
-
-	function nextExercise(exercises) {
-		var current = exercises[0]
-		var rest = exercises.slice(1)
-
-		document.getElementById("currentExercise").innerHTML = current.toUpperCase()
-		document.getElementById("nextExercise").innerHTML = rest[0].toLowerCase()
-
-		document.getElementById("timer").classList.remove("restDuration")
-		document.getElementById("timer").classList.add("workoutDuration")
-
-		var workoutDuration = parseInt(document.getElementById("workoutDuration").value)
-		var restDuration = parseInt(document.getElementById("restDuration").value)
-
-		var duration = workoutDuration + restDuration
-		countItDown(duration, workoutDuration, restDuration, rest)
 	}
 
 	function toPercentage(current, max) {
@@ -203,8 +148,36 @@
 
 	function getColour(value) {
 		//value from 0 to 1
-		var hue = ((1 - value) * 120).toString(10);
+		var hue = ((1 - value) * 50).toString(10);
 		return ["hsl(", hue, ",80%,50%)"].join("");
+	}
+
+	function workoutLink() {
+		var workoutDuration = document.getElementById("workoutDuration").value
+		var restBetweenWorkouts = document.getElementById("restBetweenWorkouts").value
+		var restBetweenRounds = document.getElementById("restBetweenRounds").value
+		var exercises = document.getElementById("exercises").value
+
+		var url = new URL(window.location.href)
+		url.searchParams.set('workoutDuration', encodeURIComponent(workoutDuration))
+		url.searchParams.set('restBetweenWorkouts', encodeURIComponent(restBetweenWorkouts))
+		url.searchParams.set('restBetweenRounds', encodeURIComponent(restBetweenRounds))
+		url.searchParams.set('exercises', encodeURIComponent(exercises.replace(/\n/g, "")))
+		return url
+	}
+
+	function copyLink() {
+		const link = workoutLink()
+		const el = document.createElement('textarea');  // Create a <textarea> element
+		el.value = link;                                 // Set its value to the string that you want copied
+		el.setAttribute('readonly', '');                // Make it readonly to be tamper-proof
+		el.style.position = 'absolute';                 
+		el.style.left = '-9999px';                      // Move outside the screen to make it invisible
+		document.body.appendChild(el);                  // Append the <textarea> element to the HTML document
+		el.select();                                    // Select the <textarea> content
+		document.execCommand('copy');                   // Copy - only works as a result of a user action (e.g. click events)
+		document.body.removeChild(el);                  // Remove the <textarea> element
+		alert("I like the way you roll!\nCopied: " + link);
 	}
 
 	function sound(src) {
@@ -221,6 +194,211 @@
 	    this.sound.pause();
 	  }
 	}
+
+
+
+
+
+
+
+
+	var state = new StateMachine()
+	var tickingTimer = new Timer()
+	var tickWatcher = new TickWatcher()
+	var workout = new WorkoutPlan()
+	var stateWatcher = new StateWatcher()
+	document.addEventListener(tickingTimer.eventNameTick, tickingTimer)
+	document.addEventListener(tickingTimer.eventNameTick, tickWatcher)
+	document.addEventListener(state.eventNameState, workout)
+	document.addEventListener(state.eventNameState, stateWatcher)
+
+	function StateMachine() {
+		this.eventNameState = 'state'
+		this.current = 'Idle'
+		this.next = function() {
+			switch (this.current) {
+				case 'Idle':
+					console.log('Idle => Workout')
+					this.current = 'Workout'
+					document.getElementById("nonTimer").classList.add("hidden")
+					var workoutDuration = parseInt(document.getElementById("workoutDuration").value)
+					var exercises = document.getElementById("exercises").value.split(",")
+					exercises.push("no more")
+
+					document.body.style.backgroundColor = getColour(toPercentage(workoutDuration, workoutDuration))
+					commenceNextExerciseSound.play()
+
+					workout.start(exercises)
+					tickingTimer.start(workoutDuration)
+
+					this.signalState(this.current)
+					break;
+				case 'Workout':
+					if (workout.hasNext()) {
+						console.log('Workout => Rest')
+						this.current = 'Rest'
+						this.signalState(this.current)
+
+						commenceRestSound.play()
+						var restBetweenWorkouts = parseInt(document.getElementById("restBetweenWorkouts").value)
+						tickingTimer.start(restBetweenWorkouts)
+					} else {
+						commenceRestSound.play()
+						console.log('Workout => NextRoundRest')
+						this.current = 'NextRoundRest'
+						this.signalState(this.current)
+
+						var restBetweenRounds = parseInt(document.getElementById("restBetweenRounds").value)
+						tickingTimer.start(restBetweenRounds)
+						commenceRestSound.play()
+					}
+					break;
+				case 'Rest':
+					console.log('Rest => Workout')
+					this.current = 'Workout'
+					this.signalState(this.current)
+
+					commenceNextExerciseSound.play()
+					var workoutDuration = parseInt(document.getElementById("workoutDuration").value)
+					tickingTimer.start(workoutDuration)
+					break;
+				case 'NextRoundRest':
+					console.log('NextRoundRest => Workout')
+					this.current = 'Workout'
+
+					commenceNextExerciseSound.play()
+					var exercises = document.getElementById("exercises").value.split(",")
+					exercises.push("no more")
+					workout.start(exercises)
+					var workoutDuration = parseInt(document.getElementById("workoutDuration").value)
+					tickingTimer.start(workoutDuration)
+
+					this.signalState(this.current)
+					break;
+			}
+		}
+		this.stop = function() {
+			console.log('... => Idle')
+			this.current = 'Idle'
+			tickingTimer.stop()
+			document.getElementById("nonTimer").classList.remove("hidden")
+		}
+		this.signalState = function(name) {
+			var tick = new CustomEvent(this.eventNameState, {
+				bubbles: true,
+				detail: { name: name }
+			})
+			document.dispatchEvent(tick)
+		}
+	}
+
+	function Timer() {
+		this.eventNameTick = 'tick'
+		this.remainingSeconds = 0
+		this.timeoutRef
+
+		this.start = function(seconds) {
+			this.remainingSeconds = seconds
+			this.refreshDisplay()
+			this.prepareForNextTick()
+		}
+		this.stop = function() {
+			console.log('Clearing timeout: ' + this.timeoutRef)
+			clearTimeout(this.timeoutRef)
+		}
+		this.refreshDisplay = function() {
+			var min = Math.floor(this.remainingSeconds / 60)
+			var sec = this.remainingSeconds - min * 60
+			document.getElementById("timer").innerHTML = padLeftTwoZero(min) + ":" + padLeftTwoZero(sec)
+		}
+
+		this.sleepingBeauty = function() {
+			function whenIWakeUp(name, seconds) {
+				var tick = new CustomEvent(name, {
+					bubbles: true,
+					detail: { remainingSeconds: seconds }
+				})
+				document.dispatchEvent(tick)
+				// console.log('Sleeping beauty is active: ' + tick.detail.remainingSeconds)
+			} 
+			this.timeoutRef = setTimeout(() => whenIWakeUp(this.eventNameTick, this.remainingSeconds), 1000)
+		}
+		this.prepareForNextTick = function() {
+			this.remainingSeconds--
+			this.sleepingBeauty()
+		}
+		this.handleEvent = function(tick) {
+			// console.log('Waking up now! ' + tick.detail.remainingSeconds)
+			this.refreshDisplay()
+			this.prepareForNextTick()
+			// console.log('Complition ' + tick.detail.remainingSeconds)
+		}
+	}
+
+	function WorkoutPlan() {
+		this.exercises
+		this.start = function(ex) {
+			this.exercises = ex
+		}
+		this.next = function() {
+			this.exercises = this.exercises.slice(1)
+		}
+		this.hasNext = function() {
+			console.log('Exercises: ' + this.exercises.length)
+			return this.exercises.length != 1
+		}
+		this.refreshDisplay = function() {
+			var current = this.exercises[0]
+			var rest = this.exercises.slice(1)
+
+			document.getElementById("currentExercise").innerHTML = current.toUpperCase()
+			document.getElementById("nextExercise").innerHTML = rest[0].toLowerCase()
+		}
+
+		this.handleEvent = function(stateEvent) {
+			if (stateEvent.detail.name === 'Workout') {
+				this.refreshDisplay()
+				this.next()
+			}
+		}
+	}
+
+	function TickWatcher() {
+		this.handleEvent = function(tick) {
+			if (state.current === 'Workout') {
+				var workoutDuration = parseInt(document.getElementById("workoutDuration").value)
+				document.body.style.backgroundColor = getColour(toPercentage(tick.detail.remainingSeconds, workoutDuration))
+			}
+
+			if (tick.detail.remainingSeconds == 0) {
+				console.log('Stoping timer as time has come. Next state....')
+				tickingTimer.stop()
+				state.next()
+			}
+		}
+	}
+	function StateWatcher() {
+		this.handleEvent = function(stateEvent) {
+			switch (stateEvent.detail.name) {
+				case 'Workout':
+					document.getElementById("timer").classList.remove("restBetweenWorkouts")
+					document.getElementById("timer").classList.add("workoutDuration")
+					break;
+				case 'Rest':
+					document.body.style.backgroundColor = "hsl(100,80%,50%)"
+					document.getElementById("timer").classList.remove("workoutDuration")
+					document.getElementById("timer").classList.add("restBetweenWorkouts")
+					document.getElementById("currentExercise").innerHTML = "REST"
+					break;
+				case 'NextRoundRest':
+					document.body.style.backgroundColor = "hsl(160,80%,50%)"
+					document.getElementById("timer").classList.remove("workoutDuration")
+					document.getElementById("timer").classList.add("restBetweenWorkouts")
+					document.getElementById("currentExercise").innerHTML = "REST UNTIL NEXT ROUND"
+					break;
+			}
+		}
+	}
 	</script>
 
 	<div class="row">
@@ -228,34 +406,55 @@
 		<div id="middleResponsiveContent" class="col-8">
 			<div id=nonTimer>
 				<div class="row">
-			      <div class="col-8">
-			        <label for="exercises">List of Exercises (comma separated)</label>
+			      <div class="col-5"></div>
+			      <div>
+			      	<input type="button" onclick="copyLink()" name="copyLink" id="copyLink" value="Click to Copy Sharable link of this workout!" />
 			      </div>
-			      <div class="col-4">
-			        <textarea id="exercises" name="exercises" placeholder="burpees, push up, plank, sculler sit up, superman, mountain climbers, caterpillars, squat jumps, lunges, triceps dips" value="burpees, push up, plank, sculler sit up, superman, mountain climbers, caterpillars, squat jumps, lunges, triceps dips"></textarea>
-			      </div>
-			    </div>
+				</div>
 				<div class="row">
-			      <div class="col-8">
-			        <label for="workoutDuration">Workout duration in seconds</label>
-			      </div>
-			      <div class="col-4">
-			        <input type="number" id="workoutDuration" name="workoutDuration" placeholder="45" value="45">
-			      </div>
-			    </div>
-				<div class="row">
-			      <div class="col-8">
-			        <label for="restDuration">Rest duration in seconds</label>
-			      </div>
-			      <div class="col-4">
-			        <input type="number" id="restDuration" name="restDuration" placeholder="15" value="15">
-			      </div>
+					<div class="col-6">
+				      <div class="col-6">
+				        <label for="workoutDuration">Workout duration in seconds</label>
+				      </div>
+				      <div class="col-4">
+				        <input type="number" id="workoutDuration" name="workoutDuration" placeholder="45" value="45" />
+				      </div>
+				      <div class="col-6">
+				        <label for="restBetweenWorkouts">Rest between workouts in seconds</label>
+				      </div>
+				      <div class="col-4">
+				        <input type="number" id="restBetweenWorkouts" name="restBetweenWorkouts" placeholder="15" value="15" />
+				      </div>
+				      <div class="col-6">
+				        <label for="restBetweenRounds">Rest between rounds in seconds</label>
+				      </div>
+				      <div class="col-4">
+				        <input type="number" id="restBetweenRounds" name="restBetweenRounds" placeholder="120" value="120" />
+				      </div>
+					</div>
+					<div class="col-6">
+				      <div class="col-4">
+				        <label for="exercises">List of Exercises (comma separated)</label>
+				      </div>
+				      <div class="col-8">
+				        <textarea id="exercises" name="exercises" placeholder="burpees, push up, plank, sculler sit up, superman, mountain climbers, caterpillars, squat jumps, lunges, triceps dips">1. burpees,
+2. push up,
+3. plank,
+4. sculler sit up,
+5. superman,
+6. mountain climbers,
+7. caterpillars,
+8. squat jumps,
+9. lunges,
+10. triceps dips</textarea>
+				      </div>
+					</div>
 			    </div>
 			</div>
 
 		    <div class="row">
-		      <input type="submit" onclick="startWorkout()" value="Touch me, yess!">
-		      <input type="reset" onclick="stopWorkout()" value="Don't stop me now!">
+		      <input type="submit" onclick="state.next()" value="Touch me, yess!">
+		      <input type="reset" onclick="state.stop()" value="Don't stop me now!">
 		    </div>
 		</div>
 		<div id="rightResponsiveMargin" class="col-2"></div>
