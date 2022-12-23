@@ -1,0 +1,3 @@
+[submodule "retrospect-questions"]
+	path = retrospect-questions
+	url = git@github.com:szigyi/retrospect-questions.git
