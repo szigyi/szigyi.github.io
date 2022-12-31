@@ -1,3 +1,4 @@
 
 ## Update submodule
-`git submodule foreach git pull origin master`
+   * `git submodule update --remote`
+   * `git submodule foreach git pull origin master`
