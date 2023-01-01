@@ -1,4 +1,8 @@
 
 ## Update submodule
-   * `git submodule update --remote`
-   * `git submodule foreach git pull origin master`
+   * `cd retrospect-questions`
+   * `git pull origin master`
+   * `cd ..`
+   * `git status`
+   * `git add .`
+   * `git commit -m "update submodule retrospect-questions"`
