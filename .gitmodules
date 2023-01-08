@@ -1,3 +1,6 @@
 [submodule "retrospect-questions"]
 	path = retrospect-questions
 	url = git@github.com:szigyi/retrospect-questions.git
+[submodule "colour-experiment-trial"]
+	path = colour-experiment-trial
+	url = git@github.com:szigyi/colour-experiment-trial.git
