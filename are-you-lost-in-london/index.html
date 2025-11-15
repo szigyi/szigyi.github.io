@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Are you lost in London? - London Underground Route Finder</title>
+  <!-- Bootstrap 5 CSS (CDN) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+  <style>
+    body { background:#f8f9fa; }
+    .line-color { width: 20px; height: 20px; border-radius: 4px; margin-right: 8px; display:inline-block; }
+    .route-card { margin-bottom: 1rem; }
+    .station-list { margin-left: 1rem; }
+    .line-name {
+      display:inline-block;
+      padding:2px 6px;
+      color:white;
+      font-size:0.85rem;
+      margin-left:6px;
+      border-radius:4px;
+    }
+    .line-bakerloo       { background-color:rgb(178, 99, 0); }
+    .line-district       { background-color:rgb(0, 125, 50); }
+    .line-metropolitan   { background-color:rgb(155, 0, 88); }
+    .line-victoria       { background-color:rgb(3, 155, 229); }
+    .line-central        { background-color:rgb(220, 36, 31); }
+    .line-hammersmith-and-city { background-color:rgb(245, 137, 166); }
+    .line-northern       { background-color:rgb(0, 0, 0); }
+    .line-waterloo-and-city { background-color:rgb(118, 208, 189); }
+    .line-circle         { background-color:rgb(255, 200, 10); }
+    .line-jubilee        { background-color:rgb(131, 141, 147); }
+    .line-piccadilly     { background-color:rgb(0, 25, 168); }
+  </style>
+</head>
+<body>
+<div class="container py-4">
+  <h1 class="mb-4">Are you lost in London?</h1>
+
+  <div id="line-list" class="mb-4"></div>
+
+  <div class="row g-3 align-items-end">
+    <div class="col-md-5">
+      <label for="startStation" class="form-label">Start Station</label>
+      <select id="startStation" class="form-select"></select>
+    </div>
+    <div class="col-md-5">
+      <label for="endStation" class="form-label">End Station</label>
+      <select id="endStation" class="form-select"></select>
+    </div>
+    <div class="col-md-2">
+      <button id="findBtn" class="btn btn-primary w-100">Find Routes</button>
+    </div>
+  </div>
+
+  <hr>
+
+  <div id="results"></div>
+</div>
+
+<!-- Bootstrap 5 JS (Popper + Bootstrap) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+
+<script>
+  /* ---------- 1.  Data ----------------------------------------------------- */
+  const lineNames = [
+    'Bakerloo',
+    'District',
+    'Metropolitan',
+    'Victoria',
+    'Central',
+    'Hammersmith & City',
+    'Northern',
+    'Waterloo & City',
+    'Circle',
+    'Jubilee',
+    'Piccadilly'
+  ];
+
+  // Stations & the lines that serve them
+  const stations = [
+    { name: "Temple", lines: ["District","Circle"] },
+    { name: "Blackfriars", lines: ["District","Circle"] },
+    { name: "Mansion House", lines: ["District","Circle"] },
+    { name: "Cannon Street", lines: ["District","Circle"] },
+    { name: "Monument", lines: ["District","Circle"] },
+    { name: "Tower Hill", lines: ["District","Circle"] },
+    { name: "Aldgate", lines: ["Metropolitan","Circle"] },
+    { name: "Liverpool Street", lines: ["Metropolitan","Central","Circle","Hammersmith & City"] },
+    { name: "Moorgate", lines: ["Metropolitan","Northern","Circle","Hammersmith & City"] },
+    { name: "Barbican", lines: ["Metropolitan","Circle","Hammersmith & City"] },
+    { name: "Farringdon", lines: ["Metropolitan","Circle","Hammersmith & City"] },
+    { name: "King's Cross St. Pancras", lines: ["Metropolitan","Northern","Piccadilly","Circle","Victoria","Hammersmith & City"] },
+    { name: "Euston Square", lines: ["Metropolitan","Circle","Hammersmith & City"] },
+    { name: "Great Portland Street", lines: ["Metropolitan","Circle","Hammersmith & City"] },
+    { name: "Baker Street", lines: ["Metropolitan","Bakerloo","Circle","Jubilee","Hammersmith & City"] },
+    { name: "Edgware Road (Circle Line)", lines: ["Circle"] },
+    { name: "Paddington", lines: ["Hammersmith & City","District","Circle","Bakerloo"] },
+    { name: "Bayswater", lines: ["District","Circle"] },
+    { name: "High Street Kensington", lines: ["District","Circle"] },
+    { name: "Gloucester Road", lines: ["District","Piccadilly","Circle"] },
+    { name: "South Kensington", lines: ["District","Piccadilly","Circle"] },
+    { name: "Victoria", lines: ["District","Circle","Victoria"] },
+    { name: "Pimlico", lines: ["Victoria"] },
+    { name: "Warren Street", lines: ["Northern","Victoria"] },
+    { name: "Queensway", lines: ["Central"] },
+    { name: "Hyde Park Corner", lines: ["Piccadilly"] },
+    { name: "Knightsbridge", lines: ["Piccadilly"] },
+    { name: "Leicester Square", lines: ["Piccadilly","Northern"] },
+    { name: "Covent Garden", lines: ["Piccadilly"] },
+    { name: "Russell Square", lines: ["Piccadilly"] },
+    { name: "Earl's Court", lines: ["District","Piccadilly"] },
+    { name: "Notting Hill Gate", lines: ["District","Central","Circle"] },
+    { name: "Lancaster Gate", lines: ["Central"] },
+    { name: "Marble Arch", lines: ["Central"] },
+    { name: "Bond Street", lines: ["Central","Jubilee"] },
+    { name: "Bank", lines: ["Waterloo & City","Northern","Central"] },
+    { name: "Oxford Circus", lines: ["Central","Bakerloo","Victoria"] },
+    { name: "Holborn", lines: ["Central","Piccadilly"] },
+    { name: "Chancery Lane", lines: ["Central"] },
+    { name: "St. Paul's", lines: ["Central"] },
+    { name: "Embankment", lines: ["District","Bakerloo","Northern","Circle"] },
+    { name: "Westminster", lines: ["District","Circle","Jubilee"] },
+    { name: "Euston", lines: ["Northern","Victoria"] },
+    { name: "Waterloo", lines: ["Waterloo & City","Bakerloo","Northern","Jubilee"] },
+    { name: "Green Park", lines: ["Piccadilly","Victoria","Jubilee"] },
+    { name: "Southwark", lines: ["Jubilee"] },
+    { name: "London Bridge", lines: ["Northern","Jubilee"] },
+    { name: "East Putney", lines: ["District"] },
+    { name: "Putney Bridge", lines: ["District"] },
+    { name: "Parsons Green", lines: ["District"] },
+    { name: "White City", lines: ["Central"] },
+    { name: "Shepherd's Bush", lines: ["Central"] },
+    { name: "Holland Park", lines: ["Central"] },
+    { name: "Brixton", lines: ["Victoria"] },
+    { name: "Vauxhall", lines: ["Victoria"] },
+    { name: "Highbury & Islington", lines: ["Victoria"] },
+    { name: "Finsbury Park", lines: ["Piccadilly","Victoria"] },
+    { name: "Stockwell", lines: ["Northern","Victoria"] },
+    { name: "Hammersmith (H&C Line)", lines: ["Hammersmith & City"] },
+    { name: "Kensal Green", lines: ["Bakerloo"] },
+    { name: "Elephant & Castle", lines: ["Northern","Bakerloo"] },
+    { name: "Warwick Avenue", lines: ["Bakerloo"] },
+    { name: "Maida Vale", lines: ["Bakerloo"] },
+    { name: "Kilburn Park", lines: ["Bakerloo"] },
+    { name: "Hammersmith (Dist&Picc Line)", lines: ["District","Piccadilly"] },
+    { name: "Kilburn", lines: ["Jubilee"] },
+    { name: "West Hampstead", lines: ["Jubilee"] },
+    { name: "Swiss Cottage", lines: ["Jubilee"] },
+    { name: "Finchley Road", lines: ["Metropolitan","Jubilee"] },
+    { name: "Archway", lines: ["Northern"] },
+    { name: "Clapham South", lines: ["Northern"] },
+    { name: "Clapham Common", lines: ["Northern"] },
+    { name: "Clapham North", lines: ["Northern"] },
+    { name: "Belsize Park", lines: ["Northern"] },
+    { name: "Hampstead", lines: ["Northern"] },
+    { name: "Mornington Crescent", lines: ["Northern"] },
+    { name: "Chalk Farm", lines: ["Northern"] },
+    { name: "Camden Town", lines: ["Northern"] },
+    { name: "Kentish Town", lines: ["Northern"] },
+    { name: "Tufnell Park", lines: ["Northern"] },
+    { name: "Oval", lines: ["Northern"] },
+    { name: "Kennington", lines: ["Northern"] },
+    { name: "East Acton", lines: ["Central"] },
+    { name: "Wood Lane", lines: ["Hammersmith & City","Circle"] },
+    { name: "West Kensington", lines: ["District"] },
+    { name: "Barons Court", lines: ["District","Piccadilly"] },
+    { name: "Fulham Broadway", lines: ["District"] },
+    { name: "West Brompton", lines: ["District"] },
+    { name: "Stamford Brook", lines: ["District"] },
+    { name: "Stepney Green", lines: ["District","Hammersmith & City"] },
+    { name: "Whitechapel", lines: ["District","Hammersmith & City"] },
+    { name: "Bow Road", lines: ["District","Hammersmith & City"] },
+    { name: "St. John's Wood", lines: ["Jubilee"] },
+    { name: "Canada Water", lines: ["Jubilee"] },
+    { name: "Bermondsey", lines: ["Jubilee"] },
+    { name: "Canary Wharf", lines: ["Jubilee"] },
+    { name: "Chiswick Park", lines: ["District"] },
+    { name: "Wimbledon Park", lines: ["District"] },
+    { name: "Southfields", lines: ["District"] },
+    { name: "Seven Sisters", lines: ["Victoria"] },
+    { name: "Blackhorse Road", lines: ["Victoria"] },
+    { name: "Tottenham Hale", lines: ["Victoria"] },
+    { name: "Brent Cross", lines: ["Northern"] },
+    { name: "Golders Green", lines: ["Northern"] },
+    { name: "South Ealing", lines: ["Piccadilly"] },
+    { name: "North Ealing", lines: ["Piccadilly"] },
+    { name: "Park Royal", lines: ["Piccadilly"] },
+    { name: "Hanger Lane", lines: ["Central"] },
+    { name: "North Acton", lines: ["Central"] },
+    { name: "Leyton", lines: ["Central"] },
+    { name: "Bromley-by-Bow", lines: ["District","Hammersmith & City"] },
+    { name: "Plaistow", lines: ["District","Hammersmith & City"] },
+    { name: "Upton Park", lines: ["District","Hammersmith & City"] },
+    { name: "Turnpike Lane", lines: ["Piccadilly"] },
+    { name: "Wood Green", lines: ["Piccadilly"] },
+    { name: "Bounds Green", lines: ["Piccadilly"] },
+    { name: "West Ham", lines: ["District","Hammersmith & City","Jubilee"] },
+    { name: "Walthamstow Central", lines: ["Victoria"] },
+    { name: "Ealing Broadway", lines: ["District","Central"] },
+    { name: "Acton Town", lines: ["District","Piccadilly"] },
+    { name: "Ealing Common", lines: ["District","Piccadilly"] },
+    { name: "South Wimbledon", lines: ["Northern"] },
+    { name: "Northfields", lines: ["Piccadilly"] },
+    { name: "Harlesden", lines: ["Bakerloo"] },
+    { name: "Kew Gardens", lines: ["District"] },
+    { name: "Gunnersbury", lines: ["District"] },
+    { name: "North Greenwich", lines: ["Jubilee"] },
+    { name: "Canning Town", lines: ["Jubilee"] },
+    { name: "Willesden Green", lines: ["Jubilee"] },
+    { name: "Colliers Wood", lines: ["Northern"] },
+    { name: "Tooting Broadway", lines: ["Northern"] },
+    { name: "Tooting Bec", lines: ["Northern"] },
+    { name: "Balham", lines: ["Northern"] },
+    { name: "Hendon Central", lines: ["Northern"] },
+    { name: "Wimbledon", lines: ["District"] },
+    { name: "Turnham Green", lines: ["District","Piccadilly"] },
+    { name: "Neasden", lines: ["Jubilee"] },
+    { name: "Dollis Hill", lines: ["Jubilee"] },
+    { name: "Stonebridge Park", lines: ["Bakerloo"] },
+    { name: "Willesden Junction", lines: ["Bakerloo"] },
+    { name: "East Finchley", lines: ["Northern"] },
+    { name: "Highgate", lines: ["Northern"] },
+    { name: "West Acton", lines: ["Central"] },
+    { name: "Stratford", lines: ["Central","Jubilee"] },
+    { name: "Hainault", lines: ["Central"] },
+    { name: "Grange Hill", lines: ["Central"] },
+    { name: "Colindale", lines: ["Northern"] },
+    { name: "Burnt Oak", lines: ["Northern"] },
+    { name: "Mill Hill East", lines: ["Northern"] },
+    { name: "Finchley Central", lines: ["Northern"] },
+    { name: "Sudbury Hill", lines: ["Piccadilly"] },
+    { name: "Sudbury Town", lines: ["Piccadilly"] },
+    { name: "Alperton", lines: ["Piccadilly"] },
+    { name: "Arnos Grove", lines: ["Piccadilly"] },
+    { name: "Southgate", lines: ["Piccadilly"] },
+    { name: "Perivale", lines: ["Central"] },
+    { name: "Greenford", lines: ["Central"] },
+    { name: "Snaresbrook", lines: ["Central"] },
+    { name: "Leytonstone", lines: ["Central"] },
+    { name: "Wanstead", lines: ["Central"] },
+    { name: "Redbridge", lines: ["Central"] },
+    { name: "Gants Hill", lines: ["Central"] },
+    { name: "South Woodford", lines: ["Central"] },
+    { name: "Newbury Park", lines: ["Central"] },
+    { name: "Barkingside", lines: ["Central"] },
+    { name: "Fairlop", lines: ["Central"] },
+    { name: "Woodford", lines: ["Central"] },
+    { name: "Roding Valley", lines: ["Central"] },
+    { name: "Chigwell", lines: ["Central"] },
+    { name: "East Ham", lines: ["District","Hammersmith & City"] },
+    { name: "Upney", lines: ["District"] },
+    { name: "Barking", lines: ["District","Hammersmith & City"] },
+    { name: "Morden", lines: ["Northern"] },
+    { name: "Hounslow Central", lines: ["Piccadilly"] },
+    { name: "Hounslow East", lines: ["Piccadilly"] },
+    { name: "Osterley", lines: ["Piccadilly"] },
+    { name: "Boston Manor", lines: ["Piccadilly"] },
+    { name: "Wembley Central", lines: ["Bakerloo"] },
+    { name: "North Wembley", lines: ["Bakerloo"] },
+    { name: "Richmond", lines: ["District"] },
+    { name: "Preston Road", lines: ["Metropolitan"] },
+    { name: "Wembley Park", lines: ["Metropolitan","Jubilee"] },
+    { name: "Kingsbury", lines: ["Jubilee"] },
+    { name: "Queensbury", lines: ["Jubilee"] },
+    { name: "South Kenton", lines: ["Bakerloo"] },
+    { name: "Kenton", lines: ["Bakerloo"] },
+    { name: "Woodside Park", lines: ["Northern"] },
+    { name: "West Finchley", lines: ["Northern"] },
+    { name: "Totteridge & Whetstone", lines: ["Northern"] },
+    { name: "Northwick Park", lines: ["Metropolitan"] },
+    { name: "Becontree", lines: ["District"] },
+    { name: "Dagenham Heathway", lines: ["District"] },
+    { name: "Buckhurst Hill", lines: ["Central"] },
+    { name: "Edgware", lines: ["Northern"] },
+    { name: "Cockfosters", lines: ["Piccadilly"] },
+    { name: "Oakwood", lines: ["Piccadilly"] },
+    { name: "Ruislip Gardens", lines: ["Central"] },
+    { name: "South Ruislip", lines: ["Central"] },
+    { name: "Northolt", lines: ["Central"] },
+    { name: "Hounslow West", lines: ["Piccadilly"] },
+    { name: "South Harrow", lines: ["Piccadilly"] },
+    { name: "Harrow & Wealdstone", lines: ["Bakerloo"] },
+    { name: "High Barnet", lines: ["Northern"] },
+    { name: "Eastcote", lines: ["Metropolitan","Piccadilly"] },
+    { name: "West Harrow", lines: ["Metropolitan"] },
+    { name: "Rayners Lane", lines: ["Metropolitan","Piccadilly"] },
+    { name: "North Harrow", lines: ["Metropolitan"] },
+    { name: "Pinner", lines: ["Metropolitan"] },
+    { name: "Harrow-on-the-Hill", lines: ["Metropolitan"] },
+    { name: "Stanmore", lines: ["Jubilee"] },
+    { name: "Canons Park", lines: ["Jubilee"] },
+    { name: "Dagenham East", lines: ["District"] },
+    { name: "Loughton", lines: ["Central"] },
+    { name: "Debden", lines: ["Central"] },
+    { name: "Theydon Bois", lines: ["Central"] },
+    { name: "Epping", lines: ["Central"] },
+    { name: "Elm Park", lines: ["District"] },
+    { name: "Hornchurch", lines: ["District"] },
+    { name: "Heathrow Terminals 1-2-3", lines: ["Piccadilly"] },
+    { name: "Upminster Bridge", lines: ["District"] },
+    { name: "West Ruislip", lines: ["Central"] },
+    { name: "Upminster", lines: ["District"] },
+    { name: "Hatton Cross", lines: ["Piccadilly"] },
+    { name: "Northwood", lines: ["Metropolitan"] },
+    { name: "Heathrow Terminal 5", lines: ["Piccadilly"] },
+    { name: "Heathrow Terminal 4", lines: ["Piccadilly"] },
+    { name: "Uxbridge", lines: ["Metropolitan","Piccadilly"] },
+    { name: "Hillingdon", lines: ["Metropolitan","Piccadilly"] },
+    { name: "Ickenham", lines: ["Metropolitan","Piccadilly"] },
+    { name: "Ruislip", lines: ["Metropolitan","Piccadilly"] },
+    { name: "Ruislip Manor", lines: ["Metropolitan","Piccadilly"] },
+    { name: "Northwood Hills", lines: ["Metropolitan"] },
+    { name: "Chorleywood", lines: ["Metropolitan"] },
+    { name: "Rickmansworth", lines: ["Metropolitan"] },
+    { name: "Moor Park", lines: ["Metropolitan"] },
+    { name: "Croxley", lines: ["Metropolitan"] },
+    { name: "Watford", lines: ["Metropolitan"] },
+    { name: "Chalfont & Latimer", lines: ["Metropolitan"] },
+    { name: "Chesham", lines: ["Metropolitan"] },
+    { name: "Amersham", lines: ["Metropolitan"] }
+  ].sort((a, b) => a.name.localeCompare(b.name));
+
+  /* ---------- 2.  Utility Functions ------------------------------------- */
+
+  // Return array of stations that have a given line
+  function stationsOnLine(line) {
+    return stations.filter(st => st.lines.includes(line)).map(st => st.name);
+  }
+
+  // Find all lines common to two stations
+  function commonLines(stationFrom, stationTo) {
+      return stationFrom.lines.filter(l => stationTo.lines.includes(l));
+  }
+
+  // Find transfer station(s) between lineA and lineB
+  function transferStations(lineA, lineB) {
+    return stations.filter(st => st.lines.includes(lineA) && st.lines.includes(lineB))
+                   .map(st => st.name);
+  }
+
+  // Estimate time: 1 line segment = 2 minutes per 1-2 stops, + 1 minute for crossing a line (transfer)
+  function estimateTime(route) {
+    // route: array of { segment: [station1, station2, station3..., transferStation], lines: [] }
+    let time = 0;
+    route.forEach(seg => {
+      // number of stops in this segment
+      const stops = seg.segment.length;
+      time += (stops - 1) * 2; // 2 minutes per hop
+      // add transfer penalty if a transfer station appears
+      if (seg.transfer) time += 1;
+    });
+    return time;
+  }
+
+  /* ---------- 3.  Main Route Finder ------------------------------------- */
+
+  function findRoutes(startName, endName) {
+    const start = stations.find(st => st.name === startName);
+    const end   = stations.find(st => st.name === endName);
+    if (!start || !end) return [];
+
+    const routes = [];
+
+    // 1) Direct routes – same line at both ends
+    const direct = commonLines(start, end);
+    direct.forEach(line => {
+      const route = {
+        legs: [
+          { from: startName, to: endName, line: line }
+        ],
+        transfer: null,
+        time: estimateTime([{ segment: [startName, endName], transfer: false }])
+      };
+      routes.push(route);
+    });
+
+    // 2) One‑transfer routes
+    start.lines.forEach(lineA => {
+      const transfers = transferStations(lineA, lineA);
+      transfers.forEach(transferStationName => {
+        const transferStation = stations.find(st => st.name === transferStationName);
+        const commonAB = commonLines(start, transferStation);
+        const commonBC = commonLines(transferStation, end);
+        if (commonAB.length && commonBC.length) {
+          // Use the first common line on each segment – we don't care which
+          const route = {
+            legs: [
+                {from: startName, to: transferStationName, line: commonAB[0]},
+                {from: transferStationName, to: endName, line: commonBC[0]}
+            ],
+            transfer: transferStationName,
+            time: estimateTime([
+              { segment: [startName, transferStationName], transfer: true },
+              { segment: [transferStationName, endName],   transfer: false }
+            ])
+          };
+          routes.push(route);
+        }
+      });
+    });
+
+    // 3) try two transfers (lineA -> X -> Y -> lineB)
+    // if (routes.length === 0) {
+      start.lines.forEach(lineA => {
+          const firstTransferStationNames = transferStations(lineA, lineA);
+          console.log(`1st Transfer from '${lineA}' to '${lineA}' - '${firstTransferStationNames}'`)
+          firstTransferStationNames.forEach(firstTransferStationName => {
+            const firstTransferStation = stations.find(st => st.name === firstTransferStationName);
+            const linesAfterFirstTransfer = firstTransferStation.lines.filter(l => l !== lineA);
+            linesAfterFirstTransfer.forEach(lineB => {
+              const secondTransferStationNames = transferStations(lineA, lineB);
+              console.log(`2nd Transfer from '${lineA}' to '${lineB}' - '${secondTransferStationNames}'`)
+
+              secondTransferStationNames.forEach(secondTransferStationName => {
+                  if (start.name === firstTransferStationName) return; // skip same station
+                  if (firstTransferStationName === secondTransferStationName) return; // skip same station
+                  const secondTransferStation = stations.find(st => st.name === secondTransferStationName);
+                  const commonAB = commonLines(start, firstTransferStation);
+                  const commonBC = commonLines(firstTransferStation, secondTransferStation);
+                  const commonCD = commonLines(secondTransferStation, end);
+                  console.log(`Common Lines AB From '${start.name}' to '${firstTransferStation.name}' - '${commonAB}'`)
+                  console.log(`Common Lines BC From '${firstTransferStation.name}' to '${secondTransferStation.name}' - '${commonBC}'`)
+                  console.log(`Common Lines CD From '${secondTransferStation.name}' to '${end.name}' - '${commonCD}'`)
+
+                  if (commonAB.length && commonBC.length && commonCD.length && commonCD[0] && lineA !== lineB && lineB !== commonCD[0] && lineA !== commonCD[0]) {
+                      console.log(`Adding Route: ${startName} -> ${firstTransferStationName} -> ${secondTransferStationName} -> ${endName}`)
+                      const route = {
+                          legs: [
+                              { from: startName, to: firstTransferStationName, line: lineA },
+                              { from: firstTransferStationName, to: secondTransferStationName, line: lineB },
+                              { from: secondTransferStationName, to: endName, line: commonCD[0] }
+                          ],
+                          transfer: [firstTransferStationName, secondTransferStationName],
+                          time: estimateTime([
+                              { segment: [startName, firstTransferStationName], transfer: true },
+                              { segment: [firstTransferStationName, secondTransferStationName], transfer: true },
+                              { segment: [secondTransferStationName, endName], transfer: false }
+                          ])
+                      };
+                      routes.push(route);
+                  }
+              });
+            });
+          });
+      });
+    // }
+
+    // Sort by estimated time (shorter first)
+    routes.sort((a, b) => a.time - b.time);
+    return routes;
+  }
+
+  /* ---------- 3.  UI Initialization ------------------------------------- */
+
+  const startSelect = document.getElementById('startStation');
+  const endSelect   = document.getElementById('endStation');
+  const findBtn     = document.getElementById('findBtn');
+  const resultsDiv  = document.getElementById('results');
+
+  function populateLineList() {
+    const container = document.getElementById('line-list');
+    const rows = lineNames.map(name => {
+      const span = document.createElement('span');
+      span.className = `line-name line-${slugify(name)}`;
+      span.textContent = name;
+      return span;
+    });
+    const wrapper = document.createElement('div');
+    wrapper.className = 'd-flex flex-wrap gap-4 mb-4';
+    rows.forEach(r => wrapper.appendChild(r));
+    container.appendChild(wrapper);
+  }
+
+  populateLineList();
+
+  function populateSelect(select) {
+    const options = stations.map(st => {
+      const opt = document.createElement('option');
+      opt.value = st.name;
+      opt.textContent = st.name;
+      return opt;
+    });
+    select.append(...options);
+  }
+
+  populateSelect(startSelect);
+  populateSelect(endSelect);
+
+  /* ---------- 4.  Event Handlers --------------------------------------- */
+
+  findBtn.addEventListener('click', () => {
+    const startName = startSelect.value;
+    const endName   = endSelect.value;
+    if (!startName || !endName) return;
+
+    const routes = findRoutes(startName, endName);
+    resultsDiv.innerHTML = '';
+
+    if (!routes.length) {
+      resultsDiv.innerHTML = '<div class="alert alert-danger">No route found. Try different stations.</div>';
+      return;
+    }
+
+    routes.forEach((route, idx) => {
+      const card = document.createElement('div');
+      card.className = 'card route-card';
+      const header = document.createElement('div');
+      header.className = 'card-header';
+      header.innerHTML = `<h5 class="mb-0">Route ${idx + 1} – <span class="text-muted">Estimated ${route.time} min</span></h5>`;
+      card.appendChild(header);
+
+      const body = document.createElement('div');
+      body.className = 'card-body';
+      const list = document.createElement('ol');
+      list.className = 'route-steps';
+
+      route.legs.forEach(leg => {
+        const li = document.createElement('li');
+        const lineSpan = document.createElement('span');
+        lineSpan.className = `line-name line-${slugify(leg.line)}`;
+        lineSpan.textContent = leg.line;
+        li.innerHTML = `<strong>${leg.from}</strong> → <strong>${leg.to}</strong> on ${lineSpan.outerHTML}`;
+        list.appendChild(li);
+      });
+
+      // Mark transfer stations if any
+      if (route.transfer) {
+        const transferNote = document.createElement('p');
+        transferNote.className = 'mt-3';
+        if (Array.isArray(route.transfer)) {
+          transferNote.textContent = `Transfer at ${route.transfer.join(' & ')}`;
+        } else {
+          transferNote.textContent = `Transfer at ${route.transfer}`;
+        }
+        body.appendChild(transferNote);
+      }
+
+      body.appendChild(list);
+      card.appendChild(body);
+      resultsDiv.appendChild(card);
+    });
+  });
+
+  function slugify(name) {
+    return name.toLowerCase()
+               .replace(/[&]/g, '-and-')
+               .replace(/[^\w-]/g, '');
+  };
+
+  /* ---------- 5.  Optional: Populate with some default values --------- */
+  startSelect.value = 'Bank';
+  endSelect.value   = 'Canary Wharf';
+
+  </script>
+</body>
+</html>
