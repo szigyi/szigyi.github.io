@@ -72,7 +72,7 @@
 			justify-content: center;
 			padding: 0;
 		}
-		.skip-btn i {
+		.skip-btn i, .action-btn i {
 			font-size: 2rem;
 		}
 	</style>
@@ -496,17 +496,21 @@
 
 		<div class="row g-2 mt-2">
 			<div class="col-6">
-				<button type="button" class="btn btn-success btn-lg w-100" onclick="state.next()">Start!</button>
+				<button type="button" class="btn btn-success btn-lg w-100 action-btn" onclick="state.next()">
+					<i class="bi bi-play-fill"></i>
+				</button>
 			</div>
 			<div class="col-6">
-				<button type="button" class="btn btn-danger btn-lg w-100" onclick="state.stop()">Stop!</button>
+				<button type="button" class="btn btn-danger btn-lg w-100 action-btn" onclick="state.stop()">
+					<i class="bi bi-stop-fill"></i>
+				</button>
 			</div>
 		</div>
 
 		<div id="main-body" class="row mt-5 text-center flex-nowrap">
 			<div class="col-auto px-0">
-				<button type="button" class="btn btn-primary h-100 skip-btn" onclick="state.skipPrevious()">
-					<i class="bi bi-skip-start-fill"></i>
+				<button type="button" class="btn btn-light h-100 skip-btn" onclick="state.skipPrevious()">
+					<i class="bi bi-chevron-double-left"></i>
 				</button>
 			</div>
 			<div id="timer-and-exercise" class="col">
@@ -515,8 +519,8 @@
 				<p id="nextExercise" class="text-lowercase">{next exercise}</p>
 			</div>
 			<div class="col-auto px-0">
-				<button type="button" class="btn btn-primary h-100 skip-btn" onclick="state.skipNext()">
-					<i class="bi bi-skip-end-fill"></i>
+				<button type="button" class="btn btn-light h-100 skip-btn" onclick="state.skipNext()">
+					<i class="bi bi-chevron-double-right"></i>
 				</button>
 			</div>
 		</div>
