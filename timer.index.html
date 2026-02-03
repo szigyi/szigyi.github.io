@@ -52,7 +52,7 @@
             margin-top: 2rem;
             margin-bottom: 2rem;
             padding: 2rem;
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.75);
             border-radius: 1rem;
         }
 		#main-body {
@@ -65,11 +65,12 @@
 			overflow: hidden;
 		}
 		.skip-btn {
-			width: 40px;
+			width: 45px;
 			display: flex;
 			align-items: center;
 			justify-content: center;
 			font-size: 2.5rem;
+			background: rgba(255, 255, 255, 0.45);
 			padding: 0;
 		}
 		.action-btn i {
@@ -112,12 +113,17 @@
 
 	function toPercentage(current, max) {
 		if (max === 0) return 1
-		return current / max
+		return 1 - (current / max)
 	}
 
 	function getColour(value) {
-		//value from 0 to 1
-		var hue = ((1 - value) * 50).toString(10);
+		// value: progress from 0 (start) to 1 (finish)
+		// hue: 20 (red-orange) to 70 (yellow-green)
+		// 50 is the range (70–20)
+		const startHue = 20
+		const endHue = 70
+		const range = endHue - startHue
+		var hue = (value * range + startHue).toString(10);
 		return ["hsl(", hue, ",80%,50%)"].join("");
 	}
 
@@ -163,13 +169,6 @@
 	    this.sound.pause();
 	  }
 	}
-
-
-
-
-
-
-
 
 	var state = new StateMachine()
 	var tickingTimer = new Timer()
