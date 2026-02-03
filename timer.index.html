@@ -23,18 +23,24 @@
 		#timer {
 			line-height: 0.8;
 			margin-top: 2rem;
-			font-size: 15vw;
+			font-size: 14.5vw;
 			font-weight: bold;
+			font-variant-numeric: tabular-nums;
+			display: inline-block;
+			max-width: 100%;
+			overflow: hidden;
 		}
     	#currentExercise {
 			line-height: 1.1;
     		margin-top: 1rem;
     		font-size: 8vw;
+			overflow: hidden;
     	}
     	#nextExercise {
     		margin-top: 1rem;
 			font-size: 4vw;
 			opacity: 0.7;
+			overflow: hidden;
     	}
         .workoutDuration {
         	color: #198754;
@@ -50,6 +56,25 @@
             background: rgba(255, 255, 255, 0.95);
             border-radius: 1rem;
         }
+		#main-body {
+			display: flex;
+			align-items: stretch;
+			justify-content: space-between;
+		}
+		#timer-and-exercise {
+			min-width: 0;
+			overflow: hidden;
+		}
+		.skip-btn {
+			width: 60px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 0;
+		}
+		.skip-btn i {
+			font-size: 2rem;
+		}
 	</style>
 </head>
 
@@ -169,7 +194,6 @@
 					console.log('Idle => Workout')
 					this.current = 'Workout'
 					document.getElementById("nonTimer").classList.add("hidden")
-					document.getElementById("timerControls").classList.remove("hidden")
 					document.querySelector("h1").classList.add("hidden")
 					var workoutDuration = parseInt(document.getElementById("workoutDuration").value)
 					var exercises = document.getElementById("exercises").value.split(",")
@@ -255,7 +279,6 @@
 			this.current = 'Idle'
 			tickingTimer.stop()
 			document.getElementById("nonTimer").classList.remove("hidden")
-			document.getElementById("timerControls").classList.add("hidden")
 			document.querySelector("h1").classList.remove("hidden")
 			document.body.style.backgroundColor = ""
 		}
@@ -480,24 +503,21 @@
 			</div>
 		</div>
 
-		<div id="timerControls" class="row g-2 mt-2 hidden">
-			<div class="col-6">
-				<button type="button" class="btn btn-primary w-100" onclick="state.skipPrevious()">
+		<div id="main-body" class="row mt-5 text-center flex-nowrap">
+			<div class="col-auto px-0">
+				<button type="button" class="btn btn-primary h-100 skip-btn" onclick="state.skipPrevious()">
 					<i class="bi bi-skip-start-fill"></i>
 				</button>
 			</div>
-			<div class="col-6">
-				<button type="button" class="btn btn-primary w-100" onclick="state.skipNext()">
-					<i class="bi bi-skip-end-fill"></i>
-				</button>
-			</div>
-		</div>
-
-		<div id="timerAndExercises" class="row mt-5 text-center">
-			<div class="col-12">
+			<div id="timer-and-exercise" class="col">
 				<p id="timer" class="mb-0">00:00</p>
 				<p id="currentExercise" class="text-uppercase font-weight-bold mb-0">{current exercise}</p>
 				<p id="nextExercise" class="text-lowercase">{next exercise}</p>
+			</div>
+			<div class="col-auto px-0">
+				<button type="button" class="btn btn-primary h-100 skip-btn" onclick="state.skipNext()">
+					<i class="bi bi-skip-end-fill"></i>
+				</button>
 			</div>
 		</div>
 	</div>
