@@ -60,11 +60,17 @@
 		  border: none;
 		  border-radius: 4px;
 		  cursor: pointer;
+		}
+		input[type=submit] {
 		  float: left;
 		}
 		input[type=reset] {
 			background-color: red;
 		  float: right;
+		}
+		.skipButton {
+			background-color: blue !important;
+			font-size: 2vw !important;
 		}
 
 		p {
@@ -221,6 +227,7 @@
 					console.log('Idle => Workout')
 					this.current = 'Workout'
 					document.getElementById("nonTimer").classList.add("hidden")
+					document.getElementById("timerControls").classList.remove("hidden")
 					var workoutDuration = parseInt(document.getElementById("workoutDuration").value)
 					var exercises = document.getElementById("exercises").value.split(",")
 					exercises.push("no more")
@@ -282,6 +289,45 @@
 			this.current = 'Idle'
 			tickingTimer.stop()
 			document.getElementById("nonTimer").classList.remove("hidden")
+			document.getElementById("timerControls").classList.add("hidden")
+		}
+		this.skipNext = function() {
+			if (this.current === 'Idle') return
+			
+			tickingTimer.stop()
+			this.current = 'Workout'
+			
+			if (workout.currentIndex >= workout.exercises.length - 1) {
+				// We are at the last exercise ("no more") or beyond.
+				// Just restart it or do nothing.
+			}
+			
+			this.signalState(this.current)
+			commenceNextExerciseSound.play()
+			var workoutDuration = parseInt(document.getElementById("workoutDuration").value)
+			tickingTimer.start(workoutDuration)
+		}
+		this.skipPrevious = function() {
+			if (this.current === 'Idle') return
+
+			tickingTimer.stop()
+			this.current = 'Workout'
+			
+			// workout.next() is called when 'Workout' state starts.
+			// So when we are in Workout, currentIndex is already pointing to the NEXT one.
+			// If we want to go to PREVIOUS exercise:
+			// currentIndex points to CURRENT+1.
+			// To go to PREVIOUS: we need to set index to CURRENT-1.
+			// So we need to decrement by 2.
+			
+			workout.previous() // back to current
+			workout.previous() // back to previous
+			if (workout.currentIndex < 0) workout.currentIndex = 0
+
+			this.signalState(this.current)
+			commenceNextExerciseSound.play()
+			var workoutDuration = parseInt(document.getElementById("workoutDuration").value)
+			tickingTimer.start(workoutDuration)
 		}
 		this.signalState = function(name) {
 			var tick = new CustomEvent(this.eventNameState, {
@@ -296,13 +342,17 @@
 		this.eventNameTick = 'tick'
 		this.remainingSeconds = 0
 		this.timeoutRef
+		this.isActive = false
 
 		this.start = function(seconds) {
+			this.stop()
+			this.isActive = true
 			this.remainingSeconds = seconds
 			this.refreshDisplay()
 			this.prepareForNextTick()
 		}
 		this.stop = function() {
+			this.isActive = false
 			console.log('Clearing timeout: ' + this.timeoutRef)
 			clearTimeout(this.timeoutRef)
 		}
@@ -328,6 +378,7 @@
 			this.sleepingBeauty()
 		}
 		this.handleEvent = function(tick) {
+			if (!this.isActive) return
 			// console.log('Waking up now! ' + tick.detail.remainingSeconds)
 			this.refreshDisplay()
 			this.prepareForNextTick()
@@ -336,23 +387,29 @@
 	}
 
 	function WorkoutPlan() {
-		this.exercises
+		this.exercises = []
+		this.currentIndex = 0
 		this.start = function(ex) {
 			this.exercises = ex
+			this.currentIndex = 0
 		}
 		this.next = function() {
-			this.exercises = this.exercises.slice(1)
+			this.currentIndex++
+		}
+		this.previous = function() {
+			if (this.currentIndex > 0) {
+				this.currentIndex--
+			}
 		}
 		this.hasNext = function() {
-			console.log('Exercises: ' + this.exercises.length)
-			return this.exercises.length != 1
+			return this.currentIndex < this.exercises.length - 1
 		}
 		this.refreshDisplay = function() {
-			var current = this.exercises[0]
-			var rest = this.exercises.slice(1)
+			var current = this.exercises[this.currentIndex]
+			var next = this.exercises[this.currentIndex + 1]
 
 			document.getElementById("currentExercise").innerHTML = current.toUpperCase()
-			document.getElementById("nextExercise").innerHTML = rest[0].toLowerCase()
+			document.getElementById("nextExercise").innerHTML = next ? next.toLowerCase() : ""
 		}
 
 		this.handleEvent = function(stateEvent) {
@@ -453,8 +510,12 @@
 			</div>
 
 		    <div class="row">
-		      <input type="submit" onclick="state.next()" value="Touch me, yess!">
-		      <input type="reset" onclick="state.stop()" value="Don't stop me now!">
+		      <input type="submit" onclick="state.next()" value="Start!">
+		      <input type="reset" onclick="state.stop()" value="Stop!">
+		    </div>
+		    <div id="timerControls" class="row hidden">
+		      <input type="button" class="skipButton" onclick="state.skipPrevious()" value="Previous Exercise">
+		      <input type="button" class="skipButton" style="float: right;" onclick="state.skipNext()" value="Next Exercise">
 		    </div>
 		</div>
 		<div id="rightResponsiveMargin" class="col-2"></div>
