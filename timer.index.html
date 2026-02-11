@@ -204,6 +204,40 @@
 	  }
 	}
 
+	function setWorkoutPlan(name) {
+		const plans = {
+			'Test Workout': {
+				duration: 10,
+				rest: 5,
+				roundRest: 8,
+				exercises: 'push up, plank, lunges'
+			},
+			'Core Workout': {
+				duration: 45,
+				rest: 0,
+				roundRest: 120,
+				exercises: 'glute bridge, plank, deadbug, dorsal raise, scissor legs, plank reach, side plank, side plank, aleknas, bird-dog left, bird-dog right, penguin, spiderman plank, dish hold'
+			},
+			'Tissue Conditioning': {
+				duration: 45,
+				rest: 0,
+				roundRest: 120,
+				exercises: 'left lunge, right lunge, bent over row, squats, military press, rdl, high pull-ups, press up'
+			}
+		}
+
+		const plan = plans[name]
+		if (plan) {
+			document.getElementById("workoutDuration").value = plan.duration
+			document.getElementById("restBetweenWorkouts").value = plan.rest
+			document.getElementById("restBetweenRounds").value = plan.roundRest
+			document.getElementById("exercises").value = plan.exercises.replace(/, /g, ",\n")
+			
+			const url = workoutLink()
+			window.history.replaceState({}, '', url)
+		}
+	}
+
 	var state = new StateMachine()
 	var tickingTimer = new Timer()
 	var tickWatcher = new TickWatcher()
@@ -483,6 +517,23 @@
 	<div class="container container-main shadow-lg">
 		<h1 class="text-center mb-4">Workout Timer</h1>
 		<div id="nonTimer">
+			<div id="workoutPlans" class="row mb-4">
+				<div class="col-md-4">
+					<button type="button" class="btn btn-outline-primary w-100" onclick="setWorkoutPlan('Test Workout')">
+						Test Workout
+					</button>
+				</div>
+				<div class="col-md-4">
+					<button type="button" class="btn btn-outline-primary w-100" onclick="setWorkoutPlan('Core Workout')">
+						Core Workout
+					</button>
+				</div>
+				<div class="col-md-4">
+					<button type="button" class="btn btn-outline-primary w-100" onclick="setWorkoutPlan('Tissue Conditioning')">
+						Tissue Conditioning
+					</button>
+				</div>
+			</div>
 			<div class="row mb-4">
 				<div class="col-12 text-center">
 					<button type="button" class="btn btn-secondary w-100" onclick="copyLink()" id="copyLink">
