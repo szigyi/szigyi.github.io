@@ -425,9 +425,17 @@
 		this.refreshDisplay = function() {
 			var current = this.exercises[this.currentIndex]
 			var next = this.exercises[this.currentIndex + 1]
+			var totalExercises = this.exercises.length - 1
 
-			document.getElementById("currentExercise").innerHTML = current.toUpperCase()
-			document.getElementById("nextExercise").innerHTML = next ? "up next: " + next.toLowerCase() : ""
+			var currentNumber = this.currentIndex + 1
+			var nextNumber = this.currentIndex + 2
+
+			document.getElementById("currentExercise").innerHTML = currentNumber + ". " + current.toUpperCase()
+			if (next && nextNumber <= totalExercises) {
+				document.getElementById("nextExercise").innerHTML = "up next: " + nextNumber + ". " + next.toLowerCase()
+			} else {
+				document.getElementById("nextExercise").innerHTML = next ? "up next: " + next.toLowerCase() : ""
+			}
 		}
 
 		this.handleEvent = function(stateEvent) {
@@ -464,7 +472,16 @@
 					document.getElementById("timer").classList.remove("workoutDuration")
 					document.getElementById("timer").classList.add("restBetweenWorkouts")
 					document.getElementById("currentExercise").innerHTML = "REST"
-					document.getElementById("nextExercise").innerHTML = "up next: " + (workout.exercises[workout.currentIndex] || "").toLowerCase()
+					
+					var nextExercise = workout.exercises[workout.currentIndex]
+					var nextNumber = workout.currentIndex + 1
+					var totalExercises = workout.exercises.length - 1
+					
+					if (nextExercise && nextNumber <= totalExercises) {
+						document.getElementById("nextExercise").innerHTML = "up next: " + nextNumber + ". " + nextExercise.toLowerCase()
+					} else {
+						document.getElementById("nextExercise").innerHTML = "up next: " + (nextExercise || "").toLowerCase()
+					}
 					break;
 				case 'NextRoundRest':
 					document.body.style.backgroundColor = "hsl(160,80%,50%)"
@@ -506,16 +523,16 @@
 				<div class="col-md-6">
 					<div class="mb-3">
 						<label for="exercises" class="form-label">List of Exercises (comma separated)</label>
-						<textarea id="exercises" name="exercises" class="form-control" placeholder="burpees, push up, plank, sculler sit up, superman, mountain climbers, caterpillars, squat jumps, lunges, triceps dips">1. burpees,
-2. push up,
-3. plank,
-4. sculler sit up,
-5. superman,
-6. mountain climbers,
-7. caterpillars,
-8. squat jumps,
-9. lunges,
-10. triceps dips</textarea>
+						<textarea id="exercises" name="exercises" class="form-control" placeholder="burpees, push up, plank, sculler sit up, superman, mountain climbers, caterpillars, squat jumps, lunges, triceps dips">burpees,
+push up,
+plank,
+sculler sit up,
+superman,
+mountain climbers,
+caterpillars,
+squat jumps,
+lunges,
+triceps dips</textarea>
 					</div>
 				</div>
 			</div>
