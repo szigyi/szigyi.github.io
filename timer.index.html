@@ -10,6 +10,9 @@
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+	<link rel="icon" type="image/png" href="favicon.png">
+	<link rel="apple-touch-icon" href="apple-touch-icon.png">
+	<link rel="apple-touch-icon-precomposed" href="apple-touch-icon-precomposed.png">
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link
@@ -96,6 +99,26 @@
 
 		.action-btn i {
 			font-size: 2.5rem;
+		}
+
+		.action-btn {
+			backdrop-filter: blur(10px);
+			-webkit-backdrop-filter: blur(10px);
+		}
+
+		.action-btn.btn-success {
+			background-color: rgba(25, 135, 84, 0.65) !important;
+			border-color: rgba(25, 135, 84, 0.5) !important;
+		}
+
+		.action-btn.btn-warning {
+			background-color: rgba(255, 193, 7, 0.65) !important;
+			border-color: rgba(255, 193, 7, 0.5) !important;
+		}
+
+		.action-btn.btn-danger {
+			background-color: rgba(220, 53, 69, 0.65) !important;
+			border-color: rgba(220, 53, 69, 0.5) !important;
 		}
 
 		@keyframes pulse {
@@ -238,14 +261,18 @@
 		}
 
 		var audioCtx = null;
+		var registeredSounds = []; // All Sound instances registered for auto-decode
 
 		/**
-		 * Ensures the AudioContext exists and is running.
-		 * Returns a Promise that resolves when the context is ready to play audio.
+		 * Creates (or resumes) the AudioContext and immediately decodes all
+		 * registered sounds so subsequent play() calls have zero async overhead.
+		 * @returns {Promise}
 		 */
 		function initAudioCtx() {
 			if (!audioCtx) {
 				audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+				// Kick off decode for every sound that has already fetched its bytes.
+				registeredSounds.forEach(function (s) { s._startDecode(); });
 			}
 			if (audioCtx.state === 'suspended') {
 				return audioCtx.resume();
@@ -254,51 +281,96 @@
 		}
 
 		/**
+		 * Decodes every registered sound and resolves when all are ready.
+		 * @returns {Promise}
+		 */
+		function preloadAllSounds() {
+			return initAudioCtx().then(function () {
+				var pending = registeredSounds
+					.filter(function (s) { return !s.buffer; })
+					.map(function (s) { return s._decodePromise(); });
+				return Promise.all(pending);
+			});
+		}
+
+		// Pre-warm on the very first user gesture so sounds are ready before Play is clicked.
+		document.addEventListener('pointerdown', function () {
+			initAudioCtx().then(function () {
+				registeredSounds.forEach(function (s) { s._startDecode(); });
+			});
+		}, { once: true });
+
+		/**
 		 * Sound loader. Fetches raw bytes immediately (no AudioContext needed).
-		 * Decodes and plays via Web Audio API on first and subsequent play() calls.
-		 * @param {string} src - URL/path to the audio file
+		 * Decodes via Web Audio API as soon as a context is available.
+		 * @param {string} src
 		 */
 		function Sound(src) {
 			this.buffer = null;
-			var rawBuffer = null;
+			var _rawBuffer = null;
+			var _decoding = false;
+			var _decodeResolvers = [];
 			var self = this;
 
-			// Eagerly fetch the raw bytes — no AudioContext required.
+			registeredSounds.push(this);
+
+			// Fetch raw bytes eagerly — no AudioContext needed.
 			fetch(src)
 				.then(function (r) { return r.arrayBuffer(); })
-				.then(function (ab) { rawBuffer = ab; })
+				.then(function (ab) {
+					_rawBuffer = ab;
+					// If the context was already created (e.g. user interacted), decode now.
+					if (audioCtx) self._startDecode();
+				})
 				.catch(function (e) { console.error('Error fetching audio:', src, e); });
 
+			/** Starts decoding _rawBuffer if not already doing so. */
+			this._startDecode = function () {
+				if (self.buffer || _decoding || !_rawBuffer || !audioCtx) return;
+				_decoding = true;
+				audioCtx.decodeAudioData(_rawBuffer, function (buf) {
+					self.buffer = buf;
+					_rawBuffer = null; // free raw bytes
+					_decodeResolvers.forEach(function (r) { r(buf); });
+					_decodeResolvers = [];
+				}, function (e) { console.error('Decode error:', src, e); });
+			};
+
+			/** Returns a Promise that resolves once the buffer is decoded. */
+			this._decodePromise = function () {
+				if (self.buffer) return Promise.resolve(self.buffer);
+				self._startDecode();
+				return new Promise(function (resolve) {
+					_decodeResolvers.push(resolve);
+				});
+			};
+
 			/**
-			 * Plays the sound.
-			 * @param {number} [playbackRate=1.0] - 1.0 is normal speed/pitch; <1 is slower/deeper.
+			 * Plays the sound. Fully synchronous in the hot path (buffer pre-decoded).
+			 * @param {number} [playbackRate=1.0]
 			 */
 			this.play = function (playbackRate) {
 				var rate = (playbackRate !== undefined) ? playbackRate : 1.0;
-				if (!rawBuffer && !self.buffer) return; // not fetched yet
 
-				initAudioCtx().then(function () {
-					if (self.buffer) {
-						// Already decoded — play immediately.
-						var source = audioCtx.createBufferSource();
-						source.buffer = self.buffer;
-						source.playbackRate.value = rate;
-						source.connect(audioCtx.destination);
-						source.start(0);
-					} else {
-						// First play: decode then play.
-						audioCtx.decodeAudioData(rawBuffer, function (audioBuffer) {
-							self.buffer = audioBuffer;
+				if (self.buffer && audioCtx && audioCtx.state === 'running') {
+					// HOT PATH: fully synchronous, zero async overhead.
+					var source = audioCtx.createBufferSource();
+					source.buffer = self.buffer;
+					source.playbackRate.value = rate;
+					source.connect(audioCtx.destination);
+					source.start(0);
+				} else {
+					// COLD PATH: wait for context + decode, then play.
+					self._decodePromise().then(function (buf) {
+						return initAudioCtx().then(function () {
 							var source = audioCtx.createBufferSource();
-							source.buffer = audioBuffer;
+							source.buffer = buf;
 							source.playbackRate.value = rate;
 							source.connect(audioCtx.destination);
 							source.start(0);
-						}, function (e) {
-							console.error('Error decoding audio:', e);
 						});
-					}
-				});
+					});
+				}
 			};
 		}
 
@@ -468,19 +540,21 @@
 		function renderWorkoutBackground() {
 			const duration = currentPhaseDuration;
 			const remaining = currentRemaining;
-			if (duration <= 0) return;
-			const passed = duration - remaining; // number of elapsed seconds
-			const step = 100 / duration;
+			if (duration <= 1) return;
+			// Use (duration - 1) columns so the rightmost column is filled at remaining=1.
+			const cols = duration - 1;
+			const passed = duration - remaining; // elapsed seconds
+			const step = 100 / cols;
 			const stops = [];
-			for (let i = 0; i < duration; i++) {
+			for (let i = 0; i < cols; i++) {
 				const s = i * step;
 				const e = (i + 1) * step;
 				let color;
 				if (i < passed - 1) {
-					color = getColour(i / duration);
+					color = getColour(i / cols);
 				} else if (i === passed - 1) {
 					// Leading column
-					color = isStormActive ? stormColors[stormColorIndex] : getColour(i / duration);
+					color = isStormActive ? stormColors[stormColorIndex] : getColour(i / cols);
 				} else {
 					color = 'transparent';
 				}
@@ -494,18 +568,20 @@
 		function renderRestBackground() {
 			const duration = currentPhaseDuration;
 			const remaining = currentRemaining;
-			if (duration <= 0) return;
-			const step = 100 / duration;
+			if (duration <= 1) return;
+			// Use (duration - 1) columns so at remaining=1 only the leftmost column remains.
+			const cols = duration - 1;
+			const step = 100 / cols;
 			const stops = [];
-			for (let i = 0; i < duration; i++) {
+			for (let i = 0; i < cols; i++) {
 				const s = i * step;
 				const e = (i + 1) * step;
 				let color;
 				if (i < remaining - 1) {
-					color = getRestColour(i, duration);
+					color = getRestColour(i, cols);
 				} else if (i === remaining - 1) {
 					// Leading (rightmost visible) column
-					color = isStormActive ? stormColors[stormColorIndex] : getRestColour(i, duration);
+					color = isStormActive ? stormColors[stormColorIndex] : getRestColour(i, cols);
 				} else {
 					color = 'transparent';
 				}
@@ -544,8 +620,11 @@
 			}
 
 			this.togglePlayPause = function () {
+				var self = this;
 				if (this.current === 'Idle') {
-					this.next()
+					// Pre-decode all sounds before starting the timer to eliminate
+					// any async decode delay on the very first play().
+					preloadAllSounds().then(function () { self.next(); });
 				} else {
 					if (this.isPaused) {
 						this.isPaused = false
