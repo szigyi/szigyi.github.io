@@ -10,9 +10,16 @@
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link
+		href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@700;800&display=swap"
+		rel="stylesheet">
 	<style>
 		body {
+			font-family: 'Inter', sans-serif;
 			transition: background-color 0.5s ease;
+			background-color: #e9ecef;
 		}
 
 		textarea {
@@ -24,10 +31,11 @@
 		}
 
 		#timer {
+			font-family: 'JetBrains Mono', monospace;
 			line-height: 0.8;
 			margin-top: 1rem;
 			font-size: 25vmin;
-			font-weight: bold;
+			font-weight: 800;
 			font-variant-numeric: tabular-nums;
 			display: inline-block;
 			max-width: 100%;
@@ -38,7 +46,9 @@
 			line-height: 1.1;
 			margin-top: 0.5rem;
 			font-size: 10vmin;
+			font-weight: 800;
 			overflow: hidden;
+			text-transform: uppercase;
 		}
 
 		#nextExercise {
@@ -60,8 +70,53 @@
 			margin-top: 1rem;
 			margin-bottom: 1rem;
 			padding: 1.5rem;
-			background: rgba(255, 255, 255, 0.75);
-			border-radius: 1rem;
+			background: rgba(255, 255, 255, 0.65);
+			backdrop-filter: blur(25px);
+			-webkit-backdrop-filter: blur(25px);
+			border: 1px solid rgba(255, 255, 255, 0.4);
+			border-radius: 1.5rem;
+			box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+		}
+
+		/* Modern Buttons & Mobile Feedback */
+		.btn {
+			border-radius: 50px;
+			transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+		}
+
+		.btn:hover {
+			transform: scale(1.03);
+			box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+		}
+
+		.btn:active {
+			transform: scale(0.96) !important;
+			box-shadow: none !important;
+		}
+
+		.action-btn i {
+			font-size: 2.5rem;
+		}
+
+		@keyframes pulse {
+			0% {
+				transform: scale(1);
+				box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+			}
+
+			50% {
+				transform: scale(1.03);
+				box-shadow: 0 0 0 15px rgba(255, 193, 7, 0);
+			}
+
+			100% {
+				transform: scale(1);
+				box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
+			}
+		}
+
+		.pulsing {
+			animation: pulse 2s infinite;
 		}
 
 		#main-body {
@@ -73,10 +128,6 @@
 		#timer-and-exercise {
 			min-width: 0;
 			overflow: hidden;
-		}
-
-		.action-btn i {
-			font-size: 2.5rem;
 		}
 
 		@media (orientation: landscape) and (max-height: 500px) {
@@ -186,6 +237,71 @@
 			}
 		}
 
+		var audioCtx = null;
+
+		/**
+		 * Ensures the AudioContext exists and is running.
+		 * Returns a Promise that resolves when the context is ready to play audio.
+		 */
+		function initAudioCtx() {
+			if (!audioCtx) {
+				audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+			}
+			if (audioCtx.state === 'suspended') {
+				return audioCtx.resume();
+			}
+			return Promise.resolve();
+		}
+
+		/**
+		 * Sound loader. Fetches raw bytes immediately (no AudioContext needed).
+		 * Decodes and plays via Web Audio API on first and subsequent play() calls.
+		 * @param {string} src - URL/path to the audio file
+		 */
+		function Sound(src) {
+			this.buffer = null;
+			var rawBuffer = null;
+			var self = this;
+
+			// Eagerly fetch the raw bytes — no AudioContext required.
+			fetch(src)
+				.then(function (r) { return r.arrayBuffer(); })
+				.then(function (ab) { rawBuffer = ab; })
+				.catch(function (e) { console.error('Error fetching audio:', src, e); });
+
+			/**
+			 * Plays the sound.
+			 * @param {number} [playbackRate=1.0] - 1.0 is normal speed/pitch; <1 is slower/deeper.
+			 */
+			this.play = function (playbackRate) {
+				var rate = (playbackRate !== undefined) ? playbackRate : 1.0;
+				if (!rawBuffer && !self.buffer) return; // not fetched yet
+
+				initAudioCtx().then(function () {
+					if (self.buffer) {
+						// Already decoded — play immediately.
+						var source = audioCtx.createBufferSource();
+						source.buffer = self.buffer;
+						source.playbackRate.value = rate;
+						source.connect(audioCtx.destination);
+						source.start(0);
+					} else {
+						// First play: decode then play.
+						audioCtx.decodeAudioData(rawBuffer, function (audioBuffer) {
+							self.buffer = audioBuffer;
+							var source = audioCtx.createBufferSource();
+							source.buffer = audioBuffer;
+							source.playbackRate.value = rate;
+							source.connect(audioCtx.destination);
+							source.start(0);
+						}, function (e) {
+							console.error('Error decoding audio:', e);
+						});
+					}
+				});
+			};
+		}
+
 		const commenceRestSound = new Sound("171578__leszek-szary__3-down-1.wav");
 		const commenceNextExerciseSound = new Sound("171580__leszek-szary__3-up-1.wav");
 
@@ -235,51 +351,6 @@
 			document.execCommand('copy');                   // Copy - only works as a result of a user action (e.g. click events)
 			document.body.removeChild(el);                  // Remove the <textarea> element
 			alert("I like the way you roll!\nCopied: " + link);
-		}
-
-		let audioCtx = null;
-		function initAudioCtx() {
-			if (!audioCtx) {
-				audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-			}
-			if (audioCtx.state === 'suspended') {
-				audioCtx.resume();
-			}
-		}
-
-		function Sound(src) {
-			this.buffer = null;
-
-			fetch(src)
-				.then(response => response.arrayBuffer())
-				.then(arrayBuffer => {
-					if (!audioCtx) {
-						audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-					}
-					return audioCtx.decodeAudioData(arrayBuffer);
-				})
-				.then(audioBuffer => {
-					this.buffer = audioBuffer;
-				})
-				.catch(e => console.error("Error decoding audio data:", e));
-
-			this.play = function (playbackRate = 1.0) {
-				initAudioCtx();
-
-				if (!this.buffer) return null;
-
-				let bufferToPlay = this.buffer;
-				const source = audioCtx.createBufferSource();
-				source.buffer = bufferToPlay;
-
-				if (playbackRate) {
-					source.playbackRate.value = playbackRate;
-				}
-
-				source.connect(audioCtx.destination);
-				source.start(0);
-				return source;
-			}
 		}
 
 		function setWorkoutPlan(name) {
@@ -332,51 +403,116 @@
 		document.addEventListener(state.eventNameState, workout)
 		document.addEventListener(state.eventNameState, stateWatcher)
 
+		// --- Background column + storm system ---
 		var stormIntervalId = null;
-		var currentStormSpeed = 0;
 		var isStormActive = false;
-		var stormColors = [
-			'hsl(0, 90%, 50%)',    // Red (bleed)
-			'hsl(20, 90%, 50%)',   // Amber
-			'hsl(40, 90%, 50%)',   // Orange
-			'hsl(60, 90%, 50%)',   // Yellow
-			'hsl(80, 90%, 50%)',   // Yellow-Green
-			'hsl(100, 90%, 50%)',  // Green (bleed)
-			'hsl(120, 90%, 50%)',  // Bright Green (bleed)
-			'hsl(100, 90%, 50%)',  // Green
-			'hsl(80, 90%, 50%)',   // Yellow-Green
-			'hsl(60, 90%, 50%)',   // Yellow
-			'hsl(40, 90%, 50%)',   // Orange
-			'hsl(20, 90%, 50%)'    // Amber
-		];
 		var stormColorIndex = 0;
+		var currentPhaseDuration = 0;
+		var currentRemaining = 0;
 
-		function setStormActive(isActive, speed) {
-			if (isActive) {
+		var stormColors = [
+			'hsl(0, 90%, 50%)',
+			'hsl(20, 90%, 50%)',
+			'hsl(40, 90%, 50%)',
+			'hsl(60, 90%, 50%)',
+			'hsl(80, 90%, 50%)',
+			'hsl(100, 90%, 50%)',
+			'hsl(120, 90%, 50%)',
+			'hsl(100, 90%, 50%)',
+			'hsl(80, 90%, 50%)',
+			'hsl(60, 90%, 50%)',
+			'hsl(40, 90%, 50%)',
+			'hsl(20, 90%, 50%)'
+		];
+
+		/**
+		 * Activates or deactivates the storm colour-cycling effect on the leading column.
+		 * @param {boolean} active
+		 * @param {number} intervalMs - cycling interval in milliseconds
+		 */
+		function setStormActive(active, intervalMs) {
+			if (active) {
 				if (!isStormActive) {
 					isStormActive = true;
 					stormColorIndex = 0;
-				}
-				if (currentStormSpeed !== speed) {
-					currentStormSpeed = speed;
-					document.body.style.transitionDuration = speed + 's';
-					clearInterval(stormIntervalId);
-					progressStorm();
-					stormIntervalId = setInterval(progressStorm, speed * 1000);
+					stormIntervalId = setInterval(function () {
+						stormColorIndex = (stormColorIndex + 1) % stormColors.length;
+						renderBackground();
+					}, intervalMs || 180);
 				}
 			} else {
 				if (isStormActive) {
 					clearInterval(stormIntervalId);
-					currentStormSpeed = 0;
+					stormIntervalId = null;
 					isStormActive = false;
-					document.body.style.transitionDuration = '';
 				}
 			}
 		}
 
-		function progressStorm() {
-			document.body.style.backgroundColor = stormColors[stormColorIndex];
-			stormColorIndex = (stormColorIndex + 1) % stormColors.length;
+		/** Returns a rest-phase colour — same hue ramp as workout but reversed (green left, red-orange right). */
+		function getRestColour(colIndex, duration) {
+			return getColour(1 - colIndex / duration);
+		}
+
+		/** Re-renders the full-background gradient based on current phase state. */
+		function renderBackground() {
+			const cur = state ? state.current : 'Idle';
+			if (cur === 'Workout') {
+				renderWorkoutBackground();
+			} else if (cur === 'Rest' || cur === 'NextRoundRest') {
+				renderRestBackground();
+			}
+		}
+
+		/** Workout: columns fill left-to-right; leading column shows storm when active. */
+		function renderWorkoutBackground() {
+			const duration = currentPhaseDuration;
+			const remaining = currentRemaining;
+			if (duration <= 0) return;
+			const passed = duration - remaining; // number of elapsed seconds
+			const step = 100 / duration;
+			const stops = [];
+			for (let i = 0; i < duration; i++) {
+				const s = i * step;
+				const e = (i + 1) * step;
+				let color;
+				if (i < passed - 1) {
+					color = getColour(i / duration);
+				} else if (i === passed - 1) {
+					// Leading column
+					color = isStormActive ? stormColors[stormColorIndex] : getColour(i / duration);
+				} else {
+					color = 'transparent';
+				}
+				stops.push(`${color} ${s}%`, `${color} ${e}%`);
+			}
+			document.body.style.backgroundColor = '';
+			document.body.style.background = `linear-gradient(to right, ${stops.join(', ')})`;
+		}
+
+		/** Rest: columns drain right-to-left; leading (rightmost visible) column shows storm. */
+		function renderRestBackground() {
+			const duration = currentPhaseDuration;
+			const remaining = currentRemaining;
+			if (duration <= 0) return;
+			const step = 100 / duration;
+			const stops = [];
+			for (let i = 0; i < duration; i++) {
+				const s = i * step;
+				const e = (i + 1) * step;
+				let color;
+				if (i < remaining - 1) {
+					color = getRestColour(i, duration);
+				} else if (i === remaining - 1) {
+					// Leading (rightmost visible) column
+					color = isStormActive ? stormColors[stormColorIndex] : getRestColour(i, duration);
+				} else {
+					color = 'transparent';
+				}
+				stops.push(`${color} ${s}%`, `${color} ${e}%`);
+			}
+			document.body.style.backgroundColor = '';
+			document.body.style.background = `linear-gradient(to right, ${stops.join(', ')})`;
 		}
 
 		function StateMachine() {
@@ -387,16 +523,23 @@
 			this.updatePlayPauseUI = function () {
 				const btn = document.getElementById("playPauseBtn")
 				const icon = document.getElementById("playPauseIcon")
-				if (!btn || !icon) return
+				const container = document.querySelector(".container-main")
+				if (!btn || !icon || !container) return
 
 				if (this.current === 'Idle' || this.isPaused) {
 					icon.className = "bi bi-play-fill"
 					btn.classList.remove("btn-warning")
 					btn.classList.add("btn-success")
+					if (this.isPaused) {
+						container.classList.add("pulsing")
+					} else {
+						container.classList.remove("pulsing")
+					}
 				} else {
 					icon.className = "bi bi-pause-fill"
 					btn.classList.remove("btn-success")
 					btn.classList.add("btn-warning")
+					container.classList.remove("pulsing")
 				}
 			}
 
@@ -407,14 +550,18 @@
 					if (this.isPaused) {
 						this.isPaused = false
 						tickingTimer.resume()
+						// Re-enable storm cycling if it was active when paused
 						if (isStormActive) {
-							stormIntervalId = setInterval(progressStorm, currentStormSpeed * 1000);
+							setStormActive(false, 0);
+							setStormActive(true, 180);
 						}
 					} else {
 						this.isPaused = true
 						tickingTimer.pause()
+						// Freeze the storm interval while paused
 						if (isStormActive) {
 							clearInterval(stormIntervalId);
+							stormIntervalId = null;
 						}
 					}
 					this.updatePlayPauseUI()
@@ -435,8 +582,10 @@
 						this.current = 'Workout'
 						document.getElementById("nonTimer").classList.add("hidden")
 						document.querySelector("h1").classList.add("hidden")
-						document.body.style.backgroundColor = getColour(toPercentage(workoutDuration, workoutDuration))
+						currentPhaseDuration = workoutDuration;
+						currentRemaining = workoutDuration;
 						setStormActive(false, 0);
+						renderBackground();
 						commenceNextExerciseSound.play()
 						workout.start(exercises)
 						tickingTimer.start(workoutDuration)
@@ -447,12 +596,16 @@
 							if (restBetweenWorkouts > 0) {
 								console.log('Workout => Rest')
 								this.current = 'Rest'
+								currentPhaseDuration = restBetweenWorkouts;
+								currentRemaining = restBetweenWorkouts;
 								commenceRestSound.play()
 								tickingTimer.start(restBetweenWorkouts)
 								this.signalState(this.current)
 							} else {
 								console.log('Workout => Workout (Rest skipped)')
 								this.current = 'Workout'
+								currentPhaseDuration = workoutDuration;
+								currentRemaining = workoutDuration;
 								commenceNextExerciseSound.play()
 								tickingTimer.start(workoutDuration)
 								this.signalState(this.current)
@@ -461,12 +614,16 @@
 							if (restBetweenRounds > 0) {
 								console.log('Workout => NextRoundRest')
 								this.current = 'NextRoundRest'
-								commenceRestSound.play(playbackRate = 0.7 )
+								currentPhaseDuration = restBetweenRounds;
+								currentRemaining = restBetweenRounds;
+								commenceRestSound.play(0.7)
 								tickingTimer.start(restBetweenRounds)
 								this.signalState(this.current)
 							} else {
 								console.log('Workout => Workout (NextRoundRest skipped)')
 								this.current = 'Workout'
+								currentPhaseDuration = workoutDuration;
+								currentRemaining = workoutDuration;
 								commenceNextExerciseSound.play()
 								workout.start(exercises)
 								tickingTimer.start(workoutDuration)
@@ -477,6 +634,8 @@
 					case 'Rest':
 						console.log('Rest => Workout')
 						this.current = 'Workout'
+						currentPhaseDuration = workoutDuration;
+						currentRemaining = workoutDuration;
 						commenceNextExerciseSound.play()
 						tickingTimer.start(workoutDuration)
 						this.signalState(this.current)
@@ -484,7 +643,9 @@
 					case 'NextRoundRest':
 						console.log('NextRoundRest => Workout')
 						this.current = 'Workout'
-						commenceNextExerciseSound.play(playbackRate = 1.4)
+						currentPhaseDuration = workoutDuration;
+						currentRemaining = workoutDuration;
+						commenceNextExerciseSound.play(1.4)
 						workout.start(exercises)
 						tickingTimer.start(workoutDuration)
 						this.signalState(this.current)
@@ -502,7 +663,10 @@
 				document.getElementById("nonTimer").classList.remove("hidden")
 				document.querySelector("h1").classList.remove("hidden")
 				document.body.style.backgroundColor = ""
+				document.body.style.background = ""
 				setStormActive(false, 0);
+				currentPhaseDuration = 0;
+				currentRemaining = 0;
 			}
 			this.skipNext = function () {
 				if (this.current === 'Idle') return
@@ -661,34 +825,36 @@
 		function TickWatcher() {
 			this.handleEvent = function (tick) {
 				const remaining = tick.detail.remainingSeconds;
+				currentRemaining = remaining;
+
 				if (state.current === 'Workout') {
-					const workoutDuration = parseInt(document.getElementById("workoutDuration").value)
+					const workoutDuration = currentPhaseDuration;
 
+					// Audible countdown cues
 					if (workoutDuration >= 15) {
-						if (remaining === 10) {
-							commenceRestSound.play(playbackRate = 3.0)
-						}
-						if (remaining <= 5 && remaining > 0) {
-							commenceRestSound.play(playbackRate = 2)
-						}
+						if (remaining === 10) commenceRestSound.play(3.0);
+						if (remaining <= 5 && remaining > 0) commenceRestSound.play(2);
 					}
 
-					if (remaining > 5) {
-						document.body.style.backgroundColor = getColour(toPercentage(remaining, workoutDuration))
+					// Storm on leading column for last 5s, off otherwise
+					if (remaining <= 5 && remaining > 0) {
+						setStormActive(true, 180);
+					} else {
 						setStormActive(false, 0);
-					} else {
-						setStormActive(true, 0.18); // fast storm!
 					}
+					renderBackground();
+
 				} else if (state.current === 'Rest' || state.current === 'NextRoundRest') {
-					if (remaining > 3) {
-						setStormActive(true, 0.8); // slow, breathing storm
+					if (remaining <= 5 && remaining > 0) {
+						setStormActive(true, 180);
 					} else {
-						setStormActive(true, 0.2); // speed up!
+						setStormActive(false, 0);
 					}
+					renderBackground();
 				}
 
 				if (remaining <= 0) {
-					console.log('Stoping timer as time has come. Next state....')
+					console.log('Timer expired. Next state...')
 					tickingTimer.stop()
 					state.next()
 				}
@@ -701,9 +867,10 @@
 						setStormActive(false, 0);
 						document.getElementById("timer").classList.remove("restBetweenWorkouts")
 						document.getElementById("timer").classList.add("workoutDuration")
+						renderBackground();
 						break;
 					case 'Rest':
-						setStormActive(true, 3);
+						setStormActive(false, 0);
 						document.getElementById("timer").classList.remove("workoutDuration")
 						document.getElementById("timer").classList.add("restBetweenWorkouts")
 						document.getElementById("currentExercise").innerHTML = "REST"
@@ -716,13 +883,15 @@
 						} else {
 							document.getElementById("nextExercise").innerHTML = "up next: end of round"
 						}
+						renderBackground();
 						break;
 					case 'NextRoundRest':
-						setStormActive(true, 3);
+						setStormActive(false, 0);
 						document.getElementById("timer").classList.remove("workoutDuration")
 						document.getElementById("timer").classList.add("restBetweenWorkouts")
 						document.getElementById("currentExercise").innerHTML = "REST UNTIL NEXT ROUND"
 						document.getElementById("nextExercise").innerHTML = "get ready!"
+						renderBackground();
 						break;
 				}
 			}
