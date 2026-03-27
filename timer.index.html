@@ -237,26 +237,48 @@
 			alert("I like the way you roll!\nCopied: " + link);
 		}
 
+		let audioCtx = null;
+		function initAudioCtx() {
+			if (!audioCtx) {
+				audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+			}
+			if (audioCtx.state === 'suspended') {
+				audioCtx.resume();
+			}
+		}
+
 		function Sound(src) {
-			this.sound = document.createElement("audio");
-			this.sound.src = src;
-			this.sound.setAttribute("preload", "auto");
-			this.sound.setAttribute("controls", "none");
-			this.sound.style.display = "none";
-			document.body.appendChild(this.sound);
-			this.play = function () {
-				const clone = this.sound.cloneNode(true);
-				clone.play();
-			}
-			this.playDuration = function (ms) {
-				const clone = this.sound.cloneNode(true);
-				clone.play();
-				setTimeout(function () {
-					clone.pause();
-				}, ms);
-			}
-			this.stop = function () {
-				this.sound.pause();
+			this.buffer = null;
+
+			fetch(src)
+				.then(response => response.arrayBuffer())
+				.then(arrayBuffer => {
+					if (!audioCtx) {
+						audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+					}
+					return audioCtx.decodeAudioData(arrayBuffer);
+				})
+				.then(audioBuffer => {
+					this.buffer = audioBuffer;
+				})
+				.catch(e => console.error("Error decoding audio data:", e));
+
+			this.play = function (playbackRate = 1.0) {
+				initAudioCtx();
+
+				if (!this.buffer) return null;
+
+				let bufferToPlay = this.buffer;
+				const source = audioCtx.createBufferSource();
+				source.buffer = bufferToPlay;
+
+				if (playbackRate) {
+					source.playbackRate.value = playbackRate;
+				}
+
+				source.connect(audioCtx.destination);
+				source.start(0);
+				return source;
 			}
 		}
 
@@ -362,7 +384,7 @@
 			this.current = 'Idle'
 			this.isPaused = false
 
-			this.updatePlayPauseUI = function() {
+			this.updatePlayPauseUI = function () {
 				const btn = document.getElementById("playPauseBtn")
 				const icon = document.getElementById("playPauseIcon")
 				if (!btn || !icon) return
@@ -439,7 +461,7 @@
 							if (restBetweenRounds > 0) {
 								console.log('Workout => NextRoundRest')
 								this.current = 'NextRoundRest'
-								commenceRestSound.play()
+								commenceRestSound.play(playbackRate = 0.7 )
 								tickingTimer.start(restBetweenRounds)
 								this.signalState(this.current)
 							} else {
@@ -462,7 +484,7 @@
 					case 'NextRoundRest':
 						console.log('NextRoundRest => Workout')
 						this.current = 'Workout'
-						commenceNextExerciseSound.play()
+						commenceNextExerciseSound.play(playbackRate = 1.4)
 						workout.start(exercises)
 						tickingTimer.start(workoutDuration)
 						this.signalState(this.current)
@@ -644,10 +666,10 @@
 
 					if (workoutDuration >= 15) {
 						if (remaining === 10) {
-							commenceRestSound.playDuration(200);
+							commenceRestSound.play(playbackRate = 3.0)
 						}
 						if (remaining <= 5 && remaining > 0) {
-							commenceRestSound.playDuration(200);
+							commenceRestSound.play(playbackRate = 2)
 						}
 					}
 
@@ -719,7 +741,7 @@
 				</div>
 				<div class="col-12 col-md">
 					<button type="button" class="btn btn-outline-primary w-100 h-100"
-					        onclick="setWorkoutPlan('Core Workout (easy on shoulders)')">
+						onclick="setWorkoutPlan('Core Workout (easy on shoulders)')">
 						Core Workout (easy on shoulders)
 					</button>
 				</div>
@@ -790,12 +812,15 @@ triceps dips</textarea>
 
 		<div class="row g-2 mt-2">
 			<div class="col-4">
-				<button type="button" id="playPauseBtn" class="btn btn-success btn-lg w-100 action-btn" onclick="state.togglePlayPause()">
+				<button type="button" id="playPauseBtn" class="btn btn-success btn-lg w-100 action-btn"
+					onclick="state.togglePlayPause()">
 					<i id="playPauseIcon" class="bi bi-play-fill"></i>
 				</button>
 			</div>
 			<div class="col-4 text-center">
-				<p class="text-muted small mt-4"><i class="bi bi-arrow-left"></i> Swipe/Drag to skip <i class="bi bi-arrow-right"></i><br><span class="d-none d-md-inline">Or use Left/Right Arrow keys</span></p>
+				<p class="text-muted small mt-4"><i class="bi bi-arrow-left"></i> Swipe/Drag to skip <i
+						class="bi bi-arrow-right"></i><br><span class="d-none d-md-inline">Or use Left/Right Arrow
+						keys</span></p>
 			</div>
 			<div class="col-4">
 				<button type="button" class="btn btn-danger btn-lg w-100 action-btn" onclick="state.stop()">
