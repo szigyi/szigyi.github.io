@@ -354,7 +354,47 @@
 		function StateMachine() {
 			this.eventNameState = 'state'
 			this.current = 'Idle'
+			this.isPaused = false
+
+			this.updatePlayPauseUI = function() {
+				const btn = document.getElementById("playPauseBtn")
+				const icon = document.getElementById("playPauseIcon")
+				if (!btn || !icon) return
+
+				if (this.current === 'Idle' || this.isPaused) {
+					icon.className = "bi bi-play-fill"
+					btn.classList.remove("btn-warning")
+					btn.classList.add("btn-success")
+				} else {
+					icon.className = "bi bi-pause-fill"
+					btn.classList.remove("btn-success")
+					btn.classList.add("btn-warning")
+				}
+			}
+
+			this.togglePlayPause = function () {
+				if (this.current === 'Idle') {
+					this.next()
+				} else {
+					if (this.isPaused) {
+						this.isPaused = false
+						tickingTimer.resume()
+						if (isStormActive) {
+							stormIntervalId = setInterval(progressStorm, currentStormSpeed * 1000);
+						}
+					} else {
+						this.isPaused = true
+						tickingTimer.pause()
+						if (isStormActive) {
+							clearInterval(stormIntervalId);
+						}
+					}
+					this.updatePlayPauseUI()
+				}
+			}
+
 			this.next = function () {
+				this.isPaused = false
 				const workoutDuration = parseInt(document.getElementById("workoutDuration").value)
 				const raw = document.getElementById("exercises").value
 				const exercises = raw.split(/,|\n/).map(s => s.trim()).filter(Boolean)
@@ -422,10 +462,13 @@
 						this.signalState(this.current)
 						break;
 				}
+				this.updatePlayPauseUI()
 			}
 			this.stop = function () {
 				console.log('... => Idle')
 				this.current = 'Idle'
+				this.isPaused = false
+				this.updatePlayPauseUI()
 				tickingTimer.stop()
 				commenceRestSound.play()
 				document.getElementById("nonTimer").classList.remove("hidden")
@@ -435,6 +478,8 @@
 			}
 			this.skipNext = function () {
 				if (this.current === 'Idle') return
+				this.isPaused = false
+				this.updatePlayPauseUI()
 
 				if (workout.currentIndex >= workout.exercises.length) {
 					this.current = 'NextRoundRest'
@@ -452,6 +497,8 @@
 			}
 			this.skipPrevious = function () {
 				if (this.current === 'Idle') return
+				this.isPaused = false
+				this.updatePlayPauseUI()
 
 				tickingTimer.stop()
 				this.current = 'Workout'
@@ -498,6 +545,16 @@
 				this.isActive = false
 				console.log('Clearing timeout: ' + this.timeoutRef)
 				clearTimeout(this.timeoutRef)
+			}
+			this.pause = function () {
+				this.isActive = false
+				clearTimeout(this.timeoutRef)
+			}
+			this.resume = function () {
+				if (!this.isActive) {
+					this.isActive = true
+					this.sleepingBeauty()
+				}
 			}
 			this.refreshDisplay = function () {
 				document.getElementById("timer").innerHTML = this.remainingSeconds
@@ -713,8 +770,8 @@ triceps dips</textarea>
 
 		<div class="row g-2 mt-2">
 			<div class="col-6">
-				<button type="button" class="btn btn-success btn-lg w-100 action-btn" onclick="state.next()">
-					<i class="bi bi-play-fill"></i>
+				<button type="button" id="playPauseBtn" class="btn btn-success btn-lg w-100 action-btn" onclick="state.togglePlayPause()">
+					<i id="playPauseIcon" class="bi bi-play-fill"></i>
 				</button>
 			</div>
 			<div class="col-6">
