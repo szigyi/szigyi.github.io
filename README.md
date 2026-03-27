@@ -1,4 +1,9 @@
+# Workout Timer
 
+## Running locally
+```shell
+python3 -m http.server 8000
+```
 
 # Submodule
 ## Add submodule
