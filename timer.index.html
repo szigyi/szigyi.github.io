@@ -261,115 +261,60 @@
 		}
 
 		var audioCtx = null;
-		var registeredSounds = []; // All Sound instances registered for auto-decode
+		var registeredSounds = [];
 
 		/**
-		 * Creates (or resumes) the AudioContext and immediately decodes all
-		 * registered sounds so subsequent play() calls have zero async overhead.
-		 * @returns {Promise}
+		 * Creates/Resumes context immediately.
 		 */
 		function initAudioCtx() {
-			if (!audioCtx) {
-				audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-				// Kick off decode for every sound that has already fetched its bytes.
-				registeredSounds.forEach(function (s) { s._startDecode(); });
+			try {
+				if (!audioCtx) {
+					audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+				}
+				if (audioCtx.state === 'suspended') {
+					audioCtx.resume();
+				}
+			} catch (e) {
+				console.error("AudioContext init failed", e);
 			}
-			if (audioCtx.state === 'suspended') {
-				return audioCtx.resume();
-			}
-			return Promise.resolve();
 		}
 
-		/**
-		 * Decodes every registered sound and resolves when all are ready.
-		 * @returns {Promise}
-		 */
-		function preloadAllSounds() {
-			return initAudioCtx().then(function () {
-				var pending = registeredSounds
-					.filter(function (s) { return !s.buffer; })
-					.map(function (s) { return s._decodePromise(); });
-				return Promise.all(pending);
-			});
-		}
-
-		// Pre-warm on the very first user gesture so sounds are ready before Play is clicked.
-		document.addEventListener('pointerdown', function () {
-			initAudioCtx().then(function () {
-				registeredSounds.forEach(function (s) { s._startDecode(); });
-			});
-		}, { once: true });
+		// Global triggers to unlock audio
+		window.addEventListener('load', initAudioCtx);
+		document.addEventListener('pointerdown', initAudioCtx, { once: true });
 
 		/**
-		 * Sound loader. Fetches raw bytes immediately (no AudioContext needed).
-		 * Decodes via Web Audio API as soon as a context is available.
-		 * @param {string} src
+		 * Sound loader. Zero-latency synchronous playback once decoded.
 		 */
 		function Sound(src) {
 			this.buffer = null;
-			var _rawBuffer = null;
-			var _decoding = false;
-			var _decodeResolvers = [];
 			var self = this;
-
 			registeredSounds.push(this);
 
-			// Fetch raw bytes eagerly — no AudioContext needed.
+			// Fetch and decode immediately on creation
 			fetch(src)
 				.then(function (r) { return r.arrayBuffer(); })
 				.then(function (ab) {
-					_rawBuffer = ab;
-					// If the context was already created (e.g. user interacted), decode now.
-					if (audioCtx) self._startDecode();
+					// Minimal guard to ensure we have a context for decoding
+					if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+					audioCtx.decodeAudioData(ab, function (buf) {
+						self.buffer = buf;
+						console.log("Sound pre-decoded:", src);
+					}, function (e) {
+						console.error("Decode error:", src, e);
+					});
 				})
-				.catch(function (e) { console.error('Error fetching audio:', src, e); });
+				.catch(function (e) { console.error("Fetch error:", src, e); });
 
-			/** Starts decoding _rawBuffer if not already doing so. */
-			this._startDecode = function () {
-				if (self.buffer || _decoding || !_rawBuffer || !audioCtx) return;
-				_decoding = true;
-				audioCtx.decodeAudioData(_rawBuffer, function (buf) {
-					self.buffer = buf;
-					_rawBuffer = null; // free raw bytes
-					_decodeResolvers.forEach(function (r) { r(buf); });
-					_decodeResolvers = [];
-				}, function (e) { console.error('Decode error:', src, e); });
-			};
-
-			/** Returns a Promise that resolves once the buffer is decoded. */
-			this._decodePromise = function () {
-				if (self.buffer) return Promise.resolve(self.buffer);
-				self._startDecode();
-				return new Promise(function (resolve) {
-					_decodeResolvers.push(resolve);
-				});
-			};
-
-			/**
-			 * Plays the sound. Fully synchronous in the hot path (buffer pre-decoded).
-			 * @param {number} [playbackRate=1.0]
-			 */
 			this.play = function (playbackRate) {
-				var rate = (playbackRate !== undefined) ? playbackRate : 1.0;
-
-				if (self.buffer && audioCtx && audioCtx.state === 'running') {
-					// HOT PATH: fully synchronous, zero async overhead.
+				var rate = playbackRate || 1.0;
+				if (self.buffer && audioCtx) {
+					if (audioCtx.state === 'suspended') audioCtx.resume();
 					var source = audioCtx.createBufferSource();
 					source.buffer = self.buffer;
 					source.playbackRate.value = rate;
 					source.connect(audioCtx.destination);
 					source.start(0);
-				} else {
-					// COLD PATH: wait for context + decode, then play.
-					self._decodePromise().then(function (buf) {
-						return initAudioCtx().then(function () {
-							var source = audioCtx.createBufferSource();
-							source.buffer = buf;
-							source.playbackRate.value = rate;
-							source.connect(audioCtx.destination);
-							source.start(0);
-						});
-					});
 				}
 			};
 		}
@@ -622,9 +567,7 @@
 			this.togglePlayPause = function () {
 				var self = this;
 				if (this.current === 'Idle') {
-					// Pre-decode all sounds before starting the timer to eliminate
-					// any async decode delay on the very first play().
-					preloadAllSounds().then(function () { self.next(); });
+					this.next();
 				} else {
 					if (this.isPaused) {
 						this.isPaused = false
