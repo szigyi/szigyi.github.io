@@ -142,6 +142,37 @@
 			animation: pulse 2s infinite;
 		}
 
+		#workoutPlans .btn {
+			position: relative;
+			overflow: hidden;
+		}
+
+		.mini-play-icon {
+			position: absolute;
+			left: 10px;
+			top: 50%;
+			transform: translateY(-50%);
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			background-color: rgba(25, 135, 84, 0.7) !important;
+			backdrop-filter: blur(10px);
+			-webkit-backdrop-filter: blur(10px);
+			color: white;
+			width: 48px;
+			height: 28px;
+			border-radius: 50px;
+			margin-right: 0;
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+			border: 1px solid rgba(255, 255, 255, 0.2);
+		}
+
+		.mini-play-icon i {
+			margin-left: 2px;
+			/* Visual centering for play icon */
+			font-size: 1.2rem;
+		}
+
 		#main-body {
 			display: flex;
 			align-items: stretch;
@@ -194,8 +225,15 @@
 <body>
 	<script>
 		document.addEventListener('DOMContentLoaded', function (event) {
-			readUrlParameters()
-			setupSwipeAndKeyboardHandlers()
+			const urlParams = new URLSearchParams(window.location.search);
+			// If no exercises are specified in the URL, load the default plan
+			if (!urlParams.has('exercises')) {
+				console.log("Loading default plan: Core Workout (easy on shoulders)");
+				setWorkoutPlan('Core Workout (easy on shoulders)');
+			} else {
+				readUrlParameters();
+			}
+			setupSwipeAndKeyboardHandlers();
 		})
 
 		function setupSwipeAndKeyboardHandlers() {
@@ -370,7 +408,26 @@
 			alert("I like the way you roll!\nCopied: " + link);
 		}
 
+		let currentSelectedPlanName = null;
+
+		function updateWorkoutPlanButtonsUI() {
+			const buttons = document.querySelectorAll('#workoutPlans button');
+			buttons.forEach(btn => {
+				const planName = btn.getAttribute('data-plan-name');
+				if (planName === currentSelectedPlanName) {
+					btn.innerHTML = `<span class="mini-play-icon"><i class="bi bi-play-fill"></i></span> ${planName}`;
+				} else {
+					btn.textContent = planName;
+				}
+			});
+		}
+
 		function setWorkoutPlan(name) {
+			if (currentSelectedPlanName === name) {
+				state.next();
+				return;
+			}
+
 			const plans = {
 				'Test Workout': {
 					duration: 10,
@@ -400,6 +457,9 @@
 
 			const plan = plans[name]
 			if (plan) {
+				currentSelectedPlanName = name;
+				updateWorkoutPlanButtonsUI();
+
 				document.getElementById("workoutDuration").value = plan.duration
 				document.getElementById("restBetweenWorkouts").value = plan.rest
 				document.getElementById("restBetweenRounds").value = plan.roundRest
@@ -689,6 +749,10 @@
 				setStormActive(false, 0);
 				currentPhaseDuration = 0;
 				currentRemaining = 0;
+
+				// Reset plan selection UI
+				currentSelectedPlanName = null;
+				updateWorkoutPlanButtonsUI();
 			}
 			this.skipNext = function () {
 				if (this.current === 'Idle') return
@@ -926,25 +990,26 @@
 			<div id="workoutPlans" class="row g-2 mb-4">
 				<div class="col-12 col-md">
 					<button type="button" class="btn btn-outline-primary w-100 h-100"
-						onclick="setWorkoutPlan('Test Workout')">
+						onclick="setWorkoutPlan('Test Workout')" data-plan-name="Test Workout">
 						Test Workout
 					</button>
 				</div>
 				<div class="col-12 col-md">
 					<button type="button" class="btn btn-outline-primary w-100 h-100"
-						onclick="setWorkoutPlan('Core Workout (easy on shoulders)')">
+						onclick="setWorkoutPlan('Core Workout (easy on shoulders)')"
+						data-plan-name="Core Workout (easy on shoulders)">
 						Core Workout (easy on shoulders)
 					</button>
 				</div>
 				<div class="col-12 col-md">
 					<button type="button" class="btn btn-outline-primary w-100 h-100"
-						onclick="setWorkoutPlan('Core Workout')">
+						onclick="setWorkoutPlan('Core Workout')" data-plan-name="Core Workout">
 						Core Workout
 					</button>
 				</div>
 				<div class="col-12 col-md">
 					<button type="button" class="btn btn-outline-primary w-100 h-100"
-						onclick="setWorkoutPlan('Tissue Conditioning')">
+						onclick="setWorkoutPlan('Tissue Conditioning')" data-plan-name="Tissue Conditioning">
 						Tissue Conditioning
 					</button>
 				</div>
