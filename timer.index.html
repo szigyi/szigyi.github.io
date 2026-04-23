@@ -145,13 +145,13 @@
 		#workoutPlans .btn {
 			position: relative;
 			overflow: hidden;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 8px;
 		}
 
 		.mini-play-icon {
-			position: absolute;
-			left: 10px;
-			top: 50%;
-			transform: translateY(-50%);
 			display: inline-flex;
 			align-items: center;
 			justify-content: center;
@@ -162,9 +162,9 @@
 			width: 48px;
 			height: 28px;
 			border-radius: 50px;
-			margin-right: 0;
 			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 			border: 1px solid rgba(255, 255, 255, 0.2);
+			flex-shrink: 0;
 		}
 
 		.mini-play-icon i {
@@ -486,6 +486,7 @@
 		var stormColorIndex = 0;
 		var currentPhaseDuration = 0;
 		var currentRemaining = 0;
+		var lastTickTime = Date.now();
 
 		var stormColors = [
 			'hsl(0, 90%, 50%)',
@@ -513,7 +514,7 @@
 					isStormActive = true;
 					stormColorIndex = 0;
 					stormIntervalId = setInterval(function () {
-						stormColorIndex = (stormColorIndex + 1) % stormColors.length;
+						stormColorIndex++;
 						renderBackground();
 					}, intervalMs || 180);
 				}
@@ -541,7 +542,7 @@
 			}
 		}
 
-		/** Workout: columns fill left-to-right; leading column shows storm when active. */
+		/** Workout: columns fill left-to-right */
 		function renderWorkoutBackground() {
 			const duration = currentPhaseDuration;
 			const remaining = currentRemaining;
@@ -555,11 +556,16 @@
 				const s = i * step;
 				const e = (i + 1) * step;
 				let color;
-				if (i < passed - 1) {
-					color = getColour(i / cols);
-				} else if (i === passed - 1) {
-					// Leading column
-					color = isStormActive ? stormColors[stormColorIndex] : getColour(i / cols);
+				if (i <= passed - 1) {
+					if (isStormActive && passed > 0) {
+						let elapsed = Date.now() - lastTickTime;
+						let progress = Math.min(elapsed / 1000, 1);
+						let wavePos = (passed - 1) - Math.floor(progress * passed);
+						if (wavePos < 0) wavePos = 0;
+						color = (i === wavePos) ? 'hsl(120, 90%, 50%)' : getColour(i / cols);
+					} else {
+						color = getColour(i / cols);
+					}
 				} else {
 					color = 'transparent';
 				}
@@ -582,11 +588,16 @@
 				const s = i * step;
 				const e = (i + 1) * step;
 				let color;
-				if (i < remaining - 1) {
-					color = getRestColour(i, cols);
-				} else if (i === remaining - 1) {
-					// Leading (rightmost visible) column
-					color = isStormActive ? stormColors[stormColorIndex] : getRestColour(i, cols);
+				if (i <= remaining - 1) {
+					if (isStormActive && remaining > 0) {
+						let elapsed = Date.now() - lastTickTime;
+						let progress = Math.min(elapsed / 1000, 1);
+						let wavePos = (remaining - 1) - Math.floor(progress * remaining);
+						if (wavePos < 0) wavePos = 0;
+						color = (i === wavePos) ? 'hsl(120, 90%, 50%)' : getRestColour(i, cols);
+					} else {
+						color = getRestColour(i, cols);
+					}
 				} else {
 					color = 'transparent';
 				}
@@ -910,6 +921,7 @@
 
 		function TickWatcher() {
 			this.handleEvent = function (tick) {
+				lastTickTime = Date.now();
 				const remaining = tick.detail.remainingSeconds;
 				currentRemaining = remaining;
 
@@ -924,7 +936,7 @@
 
 					// Storm on leading column for last 5s, off otherwise
 					if (remaining <= 5 && remaining > 0) {
-						setStormActive(true, 180);
+						setStormActive(true, 30);
 					} else {
 						setStormActive(false, 0);
 					}
@@ -932,7 +944,7 @@
 
 				} else if (state.current === 'Rest' || state.current === 'NextRoundRest') {
 					if (remaining <= 5 && remaining > 0) {
-						setStormActive(true, 180);
+						setStormActive(true, 30);
 					} else {
 						setStormActive(false, 0);
 					}
