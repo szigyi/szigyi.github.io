@@ -228,8 +228,8 @@
 			const urlParams = new URLSearchParams(window.location.search);
 			// If no exercises are specified in the URL, load the default plan
 			if (!urlParams.has('exercises')) {
-				console.log("Loading default plan: Core Workout (easy on shoulders)");
-				setWorkoutPlan('Core Workout (easy on shoulders)');
+				console.log("Loading default plan: Easy on shoulders Core");
+				setWorkoutPlan('Easy on shoulders Core');
 			} else {
 				readUrlParameters();
 			}
@@ -429,29 +429,41 @@
 			}
 
 			const plans = {
-				'Test Workout': {
-					duration: 10,
-					rest: 5,
-					roundRest: 8,
-					exercises: 'push up, plank, lunges'
-				},
-				'Core Workout (easy on shoulders)': {
-					duration: 45,
+				'5 minutes Core': {
+					duration: 60,
 					rest: 0,
-					roundRest: 120,
-					exercises: 'glute bridge left, glute bridge right, plank, deadbug, dorsal raise, scissor legs, plank reach, sit up, russian twist, aleknas, bird-dog left, bird-dog right, penguin, leg raise, dish hold'
+					roundRest: 60,
+					exercises: 'glute bridge, plank, V situp, dish hold, box hold'
 				},
-				'Core Workout': {
+				'10 minutes Core': {
 					duration: 45,
 					rest: 0,
 					roundRest: 120,
 					exercises: 'glute bridge, plank, deadbug, dorsal raise, scissor legs, plank reach, side plank, side plank, aleknas, bird-dog left, bird-dog right, penguin, spiderman plank, dish hold'
+				},
+				'Easy on shoulders Core': {
+					duration: 45,
+					rest: 0,
+					roundRest: 120,
+					exercises: 'glute bridge left, glute bridge right, plank, deadbug, dorsal raise, scissor legs, plank reach, sit up, russian twist, aleknas, bird-dog left, bird-dog right, penguin, leg raise, dish hold'
 				},
 				'Tissue Conditioning': {
 					duration: 45,
 					rest: 0,
 					roundRest: 120,
 					exercises: 'left lunge, right lunge, bent over row, squats, military press, rdl, high pull-ups, press up'
+				},
+				'Usual Circuit': {
+					duration: 60,
+					rest: 0,
+					roundRest: 60,
+					exercises: 'Double dip Squat jumps, X Climbers, Straight leg hip raise, Scissors Legs straight, Lunge switch, Seated Abs Circles LH/RH Rotation, ITVs, ...Rest..., Sculling, Cobra Push up, Spiderman Plank, Superman Dorsal raise, Burpee Jumps, V Tuck Twists'
+				},
+				'Alternate Circuit': {
+					duration: 60,
+					rest: 0,
+					roundRest: 60,
+					exercises: 'squats, mountain climbers, burpees, dynamic plank, floor press, scissor legs, Dynamic glute bridge, ...Rest..., Lateral Raises, Lunge Switch, Press Ups, RDL, ITVs, Wall sit'
 				}
 			}
 
@@ -997,33 +1009,47 @@
 	</script>
 
 	<div class="container container-main shadow-lg">
-		<h1 class="text-center mb-5">Workout Timer</h1>
+		<h1 class="text-center mb-3">Workout Timer</h1>
 		<div id="nonTimer">
-			<div id="workoutPlans" class="row g-2 mb-4">
-				<div class="col-12 col-md">
-					<button type="button" class="btn btn-outline-primary w-100 h-100"
-						onclick="setWorkoutPlan('Test Workout')" data-plan-name="Test Workout">
-						Test Workout
-					</button>
+			<div id="workoutPlans" class="row g-3 mb-4">
+				<div class="col-12 col-lg-6">
+					<div class="text-muted small fw-bold text-uppercase mb-1">
+						<i class="bi bi-shield-shaded me-1"></i> Core Workout
+					</div>
+					<div class="btn-group w-100" role="group" aria-label="Core Workout">
+						<button type="button" class="btn btn-outline-primary"
+								onclick="setWorkoutPlan('5 minutes Core')" data-plan-name="5 minutes Core">
+							5 minutes Core
+						</button>
+						<button type="button" class="btn btn-outline-primary"
+							onclick="setWorkoutPlan('10 minutes Core')" data-plan-name="10 minutes Core">
+							10 minutes Core
+						</button>
+						<button type="button" class="btn btn-outline-primary"
+							onclick="setWorkoutPlan('Easy on shoulders Core')"
+							data-plan-name="Easy on shoulders Core">
+							Easy on shoulders Core
+						</button>
+					</div>
 				</div>
-				<div class="col-12 col-md">
-					<button type="button" class="btn btn-outline-primary w-100 h-100"
-						onclick="setWorkoutPlan('Core Workout (easy on shoulders)')"
-						data-plan-name="Core Workout (easy on shoulders)">
-						Core Workout (easy on shoulders)
-					</button>
-				</div>
-				<div class="col-12 col-md">
-					<button type="button" class="btn btn-outline-primary w-100 h-100"
-						onclick="setWorkoutPlan('Core Workout')" data-plan-name="Core Workout">
-						Core Workout
-					</button>
-				</div>
-				<div class="col-12 col-md">
-					<button type="button" class="btn btn-outline-primary w-100 h-100"
-						onclick="setWorkoutPlan('Tissue Conditioning')" data-plan-name="Tissue Conditioning">
-						Tissue Conditioning
-					</button>
+				<div class="col-12 col-lg-6">
+					<div class="text-muted small fw-bold text-uppercase mb-1">
+						<i class="bi bi-arrow-repeat me-1"></i> Circuit
+					</div>
+					<div class="btn-group w-100" role="group" aria-label="Circuit">
+						<button type="button" class="btn btn-outline-primary"
+							onclick="setWorkoutPlan('Usual Circuit')" data-plan-name="Usual Circuit">
+							Usual Circuit
+						</button>
+						<button type="button" class="btn btn-outline-primary"
+							onclick="setWorkoutPlan('Alternate Circuit')" data-plan-name="Alternate Circuit">
+							Alternate Circuit
+						</button>
+						<button type="button" class="btn btn-outline-primary"
+							onclick="setWorkoutPlan('Tissue Conditioning')" data-plan-name="Tissue Conditioning">
+							Tissue Conditioning
+						</button>
+					</div>
 				</div>
 			</div>
 			<div class="row mb-4">
