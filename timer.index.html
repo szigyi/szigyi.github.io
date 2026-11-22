@@ -151,26 +151,30 @@
 			gap: 8px;
 		}
 
-		.mini-play-icon {
-			display: inline-flex;
-			align-items: center;
-			justify-content: center;
-			background-color: rgba(25, 135, 84, 0.7) !important;
-			backdrop-filter: blur(10px);
-			-webkit-backdrop-filter: blur(10px);
-			color: white;
-			width: 48px;
-			height: 28px;
-			border-radius: 50px;
-			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-			border: 1px solid rgba(255, 255, 255, 0.2);
-			flex-shrink: 0;
+		#workoutPlans .btn .btn-text {
+			position: relative;
+			z-index: 1;
 		}
 
-		.mini-play-icon i {
-			margin-left: 2px;
-			/* Visual centering for play icon */
-			font-size: 1.2rem;
+		#workoutPlans .btn.selected-plan {
+			background-color: rgba(25, 135, 84, 0.15) !important;
+			border-color: #198754 !important;
+			color: #198754 !important;
+			font-weight: 600;
+		}
+
+		#workoutPlans .btn.selected-plan::before {
+			content: "\F4F4";
+			font-family: "bootstrap-icons" !important;
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			font-size: 3.5rem;
+			color: rgba(25, 135, 84, 0.22);
+			pointer-events: none;
+			z-index: 0;
+			line-height: 1;
 		}
 
 		#main-body {
@@ -415,9 +419,9 @@
 			buttons.forEach(btn => {
 				const planName = btn.getAttribute('data-plan-name');
 				if (planName === currentSelectedPlanName) {
-					btn.innerHTML = `<span class="mini-play-icon"><i class="bi bi-play-fill"></i></span> ${planName}`;
+					btn.classList.add('selected-plan');
 				} else {
-					btn.textContent = planName;
+					btn.classList.remove('selected-plan');
 				}
 			});
 		}
@@ -1019,16 +1023,16 @@
 					<div class="btn-group w-100" role="group" aria-label="Core Workout">
 						<button type="button" class="btn btn-outline-primary"
 								onclick="setWorkoutPlan('5 minutes Core')" data-plan-name="5 minutes Core">
-							5 minutes Core
+							<span class="btn-text">5 minutes Core</span>
 						</button>
 						<button type="button" class="btn btn-outline-primary"
 							onclick="setWorkoutPlan('10 minutes Core')" data-plan-name="10 minutes Core">
-							10 minutes Core
+							<span class="btn-text">10 minutes Core</span>
 						</button>
 						<button type="button" class="btn btn-outline-primary"
 							onclick="setWorkoutPlan('Easy on shoulders Core')"
 							data-plan-name="Easy on shoulders Core">
-							Easy on shoulders Core
+							<span class="btn-text">Easy on shoulders Core</span>
 						</button>
 					</div>
 				</div>
@@ -1039,15 +1043,15 @@
 					<div class="btn-group w-100" role="group" aria-label="Circuit">
 						<button type="button" class="btn btn-outline-primary"
 							onclick="setWorkoutPlan('Usual Circuit')" data-plan-name="Usual Circuit">
-							Usual Circuit
+							<span class="btn-text">Usual Circuit</span>
 						</button>
 						<button type="button" class="btn btn-outline-primary"
 							onclick="setWorkoutPlan('Alternate Circuit')" data-plan-name="Alternate Circuit">
-							Alternate Circuit
+							<span class="btn-text">Alternate Circuit</span>
 						</button>
 						<button type="button" class="btn btn-outline-primary"
 							onclick="setWorkoutPlan('Tissue Conditioning')" data-plan-name="Tissue Conditioning">
-							Tissue Conditioning
+							<span class="btn-text">Tissue Conditioning</span>
 						</button>
 					</div>
 				</div>
