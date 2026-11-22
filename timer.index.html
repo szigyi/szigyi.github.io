@@ -70,6 +70,7 @@
 		}
 
 		.container-main {
+			position: relative;
 			margin-top: 1rem;
 			margin-bottom: 1rem;
 			padding: 1.5rem;
@@ -79,6 +80,29 @@
 			border: 1px solid rgba(255, 255, 255, 0.4);
 			border-radius: 1.5rem;
 			box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+		}
+
+		#roundCounter {
+			position: absolute;
+			top: 1.25rem;
+			left: 1.5rem;
+			font-family: 'JetBrains Mono', monospace;
+			font-size: 3rem;
+			font-weight: 800;
+			letter-spacing: 0.05em;
+			color: #495057;
+			opacity: 0.35;
+			pointer-events: none;
+			user-select: none;
+			z-index: 10;
+		}
+
+		@media (max-width: 576px) {
+			#roundCounter {
+				top: 0.75rem;
+				left: 1rem;
+				font-size: 2rem;
+			}
 		}
 
 		/* Modern Buttons & Mobile Feedback */
@@ -193,6 +217,12 @@
 				margin-top: 0.5rem;
 				margin-bottom: 0.5rem;
 				padding: 0.75rem;
+			}
+
+			#roundCounter {
+				top: 0.4rem;
+				left: 0.75rem;
+				font-size: 1rem;
 			}
 
 			#timer {
@@ -627,6 +657,12 @@
 			this.eventNameState = 'state'
 			this.current = 'Idle'
 			this.isPaused = false
+			this.currentRound = 1
+
+			this.updateRoundUI = function () {
+				const el = document.getElementById("roundCounter")
+				if (el) el.textContent = "ROUND " + this.currentRound
+			}
 
 			this.updatePlayPauseUI = function () {
 				const btn = document.getElementById("playPauseBtn")
@@ -689,6 +725,9 @@
 					case 'Idle':
 						console.log('Idle => Workout')
 						this.current = 'Workout'
+						this.currentRound = 1
+						this.updateRoundUI()
+						document.getElementById("roundCounter").classList.remove("hidden")
 						document.getElementById("nonTimer").classList.add("hidden")
 						document.querySelector("h1").classList.add("hidden")
 						currentPhaseDuration = workoutDuration;
@@ -730,6 +769,8 @@
 								this.signalState(this.current)
 							} else {
 								console.log('Workout => Workout (NextRoundRest skipped)')
+								this.currentRound++
+								this.updateRoundUI()
 								this.current = 'Workout'
 								currentPhaseDuration = workoutDuration;
 								currentRemaining = workoutDuration;
@@ -751,6 +792,8 @@
 						break;
 					case 'NextRoundRest':
 						console.log('NextRoundRest => Workout')
+						this.currentRound++
+						this.updateRoundUI()
 						this.current = 'Workout'
 						currentPhaseDuration = workoutDuration;
 						currentRemaining = workoutDuration;
@@ -766,6 +809,9 @@
 				console.log('... => Idle')
 				this.current = 'Idle'
 				this.isPaused = false
+				this.currentRound = 1
+				this.updateRoundUI()
+				document.getElementById("roundCounter").classList.add("hidden")
 				this.updatePlayPauseUI()
 				tickingTimer.stop()
 				commenceRestSound.play()
@@ -1013,6 +1059,7 @@
 	</script>
 
 	<div class="container container-main shadow-lg">
+		<div id="roundCounter" class="hidden">ROUND 1</div>
 		<h1 class="text-center mb-3">Workout Timer</h1>
 		<div id="nonTimer">
 			<div id="workoutPlans" class="row g-3 mb-4">
