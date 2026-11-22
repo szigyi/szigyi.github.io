@@ -832,9 +832,9 @@
 				this.isPaused = false
 				this.updatePlayPauseUI()
 
-				if (workout.currentIndex >= workout.exercises.length) {
-					this.current = 'NextRoundRest'
-					this.signalState(this.current)
+				if (this.current === 'NextRoundRest' || workout.currentIndex >= workout.exercises.length) {
+					tickingTimer.stop()
+					this.next()
 					return
 				}
 
