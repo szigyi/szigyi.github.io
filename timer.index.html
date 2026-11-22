@@ -83,12 +83,12 @@
 		}
 
 		#roundCounter {
-			position: absolute;
-			top: 1.25rem;
-			left: 1.5rem;
+			position: relative;
+			margin-top: -3rem;
 			font-family: 'JetBrains Mono', monospace;
 			font-size: 3rem;
 			font-weight: 800;
+			text-align: left;
 			letter-spacing: 0.05em;
 			color: #495057;
 			opacity: 0.35;
@@ -99,8 +99,6 @@
 
 		@media (max-width: 576px) {
 			#roundCounter {
-				top: 0.75rem;
-				left: 1rem;
 				font-size: 2rem;
 			}
 		}
@@ -202,6 +200,7 @@
 		}
 
 		#main-body {
+			position: relative;
 			display: flex;
 			align-items: stretch;
 			justify-content: space-between;
@@ -727,7 +726,6 @@
 						this.current = 'Workout'
 						this.currentRound = 1
 						this.updateRoundUI()
-						document.getElementById("roundCounter").classList.remove("hidden")
 						document.getElementById("nonTimer").classList.add("hidden")
 						document.querySelector("h1").classList.add("hidden")
 						currentPhaseDuration = workoutDuration;
@@ -811,7 +809,6 @@
 				this.isPaused = false
 				this.currentRound = 1
 				this.updateRoundUI()
-				document.getElementById("roundCounter").classList.add("hidden")
 				this.updatePlayPauseUI()
 				tickingTimer.stop()
 				commenceRestSound.play()
@@ -1059,7 +1056,6 @@
 	</script>
 
 	<div class="container container-main shadow-lg">
-		<div id="roundCounter" class="hidden">ROUND 1</div>
 		<h1 class="text-center mb-3">Workout Timer</h1>
 		<div id="nonTimer">
 			<div id="workoutPlans" class="row g-3 mb-4">
@@ -1106,7 +1102,7 @@
 			<div class="row mb-4">
 				<div class="col-12 text-center">
 					<button type="button" class="btn btn-secondary w-100" onclick="copyLink()" id="copyLink">
-						Click to Copy the link of this workout!
+						<i class="bi bi-copy me-2"></i>Click to Copy the link of this workout!
 					</button>
 				</div>
 			</div>
@@ -1148,6 +1144,7 @@ triceps dips</textarea>
 		</div>
 
 		<div id="main-body" class="row mt-5 text-center">
+			<div id="roundCounter">ROUND 1</div>
 			<div id="timer-and-exercise" class="col">
 				<p id="timer" class="mb-0">00</p>
 				<p id="currentExercise" class="text-uppercase font-weight-bold mb-0">{current exercise}</p>
